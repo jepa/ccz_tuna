@@ -1,0 +1,62 @@
+---
+title: "Untitled"
+author: "Juliano Palacios"
+date: "2023-02-10"
+output: html_document
+---
+
+
+
+```{r}
+source("functions.R")
+
+
+
+# sps<-c("skj","yft","bet")
+sps <- "yft"
+
+ reg.WCPO<-c(120,210,-40,45)
+ reg.EPO<-c(210,290,-40,45)	  
+ regions<-matrix(c(reg.WCPO,reg.EPO),ncol=2)
+ reg.names<-c("WCPO","EPO")
+
+for (sp in sps){
+
+  
+  life.stage<-"adult"; 
+
+  # rcp<-c(8.5,4.5)
+  rcp <- "rcp45"
+  # CM<-c("GFDL","IPSL","MIROC","MPI")
+  CM <- "GFDL"
+  SC<-c("REF","SO","SP","ST")
+
+  # dir<-paste("/data/SEAPODYM/PROJECTS/SPC/SPC-2018/sim/",toupper(sp),"/",sep="")
+  
+  # JEPA 
+  dir <- paste("~/Data/ccz_tuna/")
+  
+  file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
+
+  dir.cc <- "/Users/juliano/Data/ccz_tuna/CC/"
+
+  dir.out <- paste("~/Data/ccz_tuna/Results/tables/")
+
+  file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
+  
+
+  for (j in 1:length(CM))
+    for (i in 1:length(SC)){
+	    file.cc$rcp4.5<-c(file.cc$rcp4.5,paste(dir.cc,rcp,"/",CM[j],"/",SC[i],"/output/output_F0/",
+				       sp,"_",life.stage,".dym",sep=""))
+	    file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,rcp,"/",CM[j],"/",SC[i],"/output/output_F0/",
+				       sp,"_",life.stage,".dym",sep=""))
+    }
+	    
+	write.ts.reg(file.cc$rcp4.5[n],t0=c(2011,1),tfin=c(2055,12),regions,paste(rcp,"_",CM[n],sep=""))
+
+} # Close species loop
+ 
+ 
+```
+

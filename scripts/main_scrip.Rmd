@@ -47,9 +47,90 @@ From Jesse Van Der Grient at UH
 
 I have added my shapefiles (see link below) based on 50, 100, and 200 km away from contract areas (indicated by the 0.5, 1 and 2 after the names) for the three different deposit types across the globe. I used these for the Watson database - the RFMO version has a clipped CCZ file, but I don't think we want to use that? Do let me know if you do want that. The projection is WGS 84, EPSG:4326. 
 
-## Map of CFC
+**Note:** We are using only the PMN shapefile
 
-```{r}
+The acronyms are the theee different mineral resources, and each of those corresponds to areas where exploration licences have been granted in different oceans. 
+
+
+## Map of CFC - cobalt ferromanganese crusts
+
+```{r cmc_maps, eval = F, echo = F}
+
+shp_path <- "/Users/juliano/Data/ccz_tuna/spatial/"
+shp_name <- "cfc"
+
+shp05 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_0.5.shp")) # 50 kmm buffer
+shp1 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_1.shp")) # 100 kmm buffer
+shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) # 200 kmm buffer
+
+world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
+  st_transform(crs = 4326)
+
+ggplot() +
+  geom_sf(data = shp2, color = "blue") +
+  geom_sf(data = shp1, color = "green") +
+  geom_sf(data = shp05, color = "red") +
+  geom_sf(data = world_land, aes()) +
+  ggtitle(paste("Projections for",shp_name))
+
+```
+## PMN - polymetallic nodules
+
+```{r pms_maps, eval = T, echo = T, message = FALSE}
+
+shp_path <- "/Users/juliano/Data/ccz_tuna/spatial/"
+shp_name <- "pmn"
+
+# crop figure to CCZ
+my_crop <- function(x){
+  x <- st_crop(x,xmax = 0,
+          xmin = -180,
+          ymax = 90,
+          ymin = -90)
+  return(x)
+}
+
+
+shp05 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_0.5.shp")) %>% # 200 kmm buffer
+  my_crop(.) # 50 kmm buffer
+shp1 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_1.shp")) %>% # 200 kmm buffer
+  my_crop(.) # 100 kmm buffer
+shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) %>% # 200 kmm buffer
+  my_crop(.)
+
+world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
+  st_transform(crs = 4326)
+
+ggplot() +
+  geom_sf(data = shp2, color = "blue") +
+  geom_sf(data = shp1, color = "green") +
+  geom_sf(data = shp05, color = "red") +
+  geom_sf(data = world_land, aes()) +
+  ggtitle(paste("Projections for",shp_name)) +
+  my_ggtheme_m(leg_pos = "")
+
+```
+
+## PMS - polymetallic sulphides
+
+```{r pms_maps, eval = F, echo = F}
+
+shp_path <- "/Users/juliano/Data/ccz_tuna/spatial/"
+shp_name <- "pms"
+
+shp05 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_0.5.shp")) # 50 kmm buffer
+shp1 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_1.shp")) # 100 kmm buffer
+shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) # 200 kmm buffer
+
+world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
+  st_transform(crs = 4326)
+
+ggplot() +
+  geom_sf(data = shp2, color = "blue") +
+  geom_sf(data = shp1, color = "green") +
+  geom_sf(data = shp05, color = "red") +
+  geom_sf(data = world_land, aes()) +
+  ggtitle(paste("Projections for",shp_name))
 
 ```
 

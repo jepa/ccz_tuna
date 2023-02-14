@@ -5,58 +5,111 @@ date: "2023-02-10"
 output: html_document
 ---
 
+```{r setup, include=FALSE}
 
+library(MyFunctions)
+
+packages <- c(
+  # "readxl", # Read dataframe
+  # "data.table", # Read dataframe (Fast!)
+  # "wesanderson",
+  "tidyverse", # for all data wrangling and ggplot
+  "janitor", # for data cleaning
+  # "tidytext", # to order the facet wrap https://juliasilge.com/blog/reorder-within/
+  # "cowplot", # for figures 1 and 3
+  # "ggimage", #for reading images to the circular plot
+  # "ggrepel", # for nice plot labels
+  # "ggsflabel", # for nice sf_plots labels
+  # "spdep", # for poly2nb old
+  "sf", #Spatial analysis 
+  "sp", #Spatial analysis 
+  # "purrr",#Spatial analysis
+  # "rgdal", #Spatial analysis
+  # "tools", #Spatial analysis 
+  # "parallel", # for parallelization
+  # "taxize", # For getting species names
+  # "rfishbase", # for species ecosystem affinity
+  # "zoo", #for runing mean
+  # "pgirmess", # for dune test after kurtis wallas
+  "rnaturalearth" # For maps
+  # "R.matlab" # For Gabs distributions
+)
+
+my_lib(packages)
+
+# Fix new updates of sf package
+sf::sf_use_s2(use_s2 = FALSE)
+```
+
+# Spatial exploration
+
+From Jesse Van Der Grient at UH
+
+I have added my shapefiles (see link below) based on 50, 100, and 200 km away from contract areas (indicated by the 0.5, 1 and 2 after the names) for the three different deposit types across the globe. I used these for the Watson database - the RFMO version has a clipped CCZ file, but I don't think we want to use that? Do let me know if you do want that. The projection is WGS 84, EPSG:4326. 
+
+## Map of CFC
 
 ```{r}
+
+```
+
+
+
+
+# Tuna data exploration
+
+```{r tuna_data_exploration}
+
 source("functions.R")
 
-
-
 # sps<-c("skj","yft","bet")
-sps <- "yft"
+sps <- "YFT"
 
- reg.WCPO<-c(120,210,-40,45)
- reg.EPO<-c(210,290,-40,45)	  
- regions<-matrix(c(reg.WCPO,reg.EPO),ncol=2)
- reg.names<-c("WCPO","EPO")
+reg.WCPO<-c(120,210,-40,45)
+reg.EPO<-c(210,290,-40,45)	  
+regions<-matrix(c(reg.WCPO,reg.EPO),ncol=2)
+reg.names<-c("WCPO","EPO")
 
 for (sp in sps){
-
+  
   
   life.stage<-"adult"; 
-
+  
   # rcp<-c(8.5,4.5)
-  rcp <- "rcp45"
+  rcp <- "4.5"
   # CM<-c("GFDL","IPSL","MIROC","MPI")
   CM <- "GFDL"
   SC<-c("REF","SO","SP","ST")
-
+  
   # dir<-paste("/data/SEAPODYM/PROJECTS/SPC/SPC-2018/sim/",toupper(sp),"/",sep="")
   
   # JEPA 
   dir <- paste("~/Data/ccz_tuna/")
   
   file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
-
-  dir.cc <- "/Users/juliano/Data/ccz_tuna/CC/"
-
-  dir.out <- paste("~/Data/ccz_tuna/Results/tables/")
-
+  
+  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sps,"/RCP")
+  
+  dir.out <- paste("~/Data/ccz_tuna/results/tables/")
+  
   file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
   
-
+  
   for (j in 1:length(CM))
     for (i in 1:length(SC)){
-	    file.cc$rcp4.5<-c(file.cc$rcp4.5,paste(dir.cc,rcp,"/",CM[j],"/",SC[i],"/output/output_F0/",
-				       sp,"_",life.stage,".dym",sep=""))
-	    file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,rcp,"/",CM[j],"/",SC[i],"/output/output_F0/",
-				       sp,"_",life.stage,".dym",sep=""))
+      file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                             sp,"_",life.stage,".dym",sep=""))
+      file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                             sp,"_",life.stage,".dym",sep=""))
     }
-	    
-	write.ts.reg(file.cc$rcp4.5[n],t0=c(2011,1),tfin=c(2055,12),regions,paste(rcp,"_",CM[n],sep=""))
 
+  # Extract data
+    for (n in 1:length(CM)){
+  write.ts.reg(file.cc$rcp4.5[n],t0=c(2011,1),tfin=c(2055,12),regions,paste("rcp45_",CM[n],sep=""))
+  write.ts.reg(file.cc$rcp8.5[n],t0=c(2011,1),tfin=c(2055,12),regions,paste("rcp85_",CM[n],sep=""))
+  } 
 } # Close species loop
- 
- 
+
+
 ```
 

@@ -5,7 +5,7 @@ date: "2023-02-10"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, message = F, warning = F}
 
 library(MyFunctions)
 
@@ -39,6 +39,14 @@ my_lib(packages)
 
 # Fix new updates of sf package
 sf::sf_use_s2(use_s2 = FALSE)
+
+# 
+# file.source <- list.files("/Users/juliano/Data/ccz_tuna/doctools/lib/",full.names = T)
+# 
+# lapply(file.source,source)
+# 
+
+
 ```
 
 # Spatial exploration
@@ -49,7 +57,7 @@ I have added my shapefiles (see link below) based on 50, 100, and 200 km away fr
 
 **Note:** We are using only the PMN shapefile
 
-The acronyms are the theee different mineral resources, and each of those corresponds to areas where exploration licences have been granted in different oceans. 
+The acronyms are the theee different mineral resources, and each of those corresponds to areas where exploration licences have been granted in different oceans. For this project we will focus on PMN - polymetallic nodules of the Pacific Ocean.
 
 
 ## Map of CFC - cobalt ferromanganese crusts
@@ -74,6 +82,7 @@ ggplot() +
   ggtitle(paste("Projections for",shp_name))
 
 ```
+
 ## PMN - polymetallic nodules
 
 ```{r pms_maps, eval = T, echo = T, message = FALSE}
@@ -83,10 +92,10 @@ shp_name <- "pmn"
 
 # crop figure to CCZ
 my_crop <- function(x){
-  x <- st_crop(x,xmax = 0,
+  x <- st_crop(x,xmax = -100,
           xmin = -180,
-          ymax = 90,
-          ymin = -90)
+          ymax = 35,
+          ymin = -35)
   return(x)
 }
 
@@ -106,8 +115,7 @@ ggplot() +
   geom_sf(data = shp1, color = "green") +
   geom_sf(data = shp05, color = "red") +
   geom_sf(data = world_land, aes()) +
-  ggtitle(paste("Projections for",shp_name)) +
-  my_ggtheme_m(leg_pos = "")
+  ggtitle(paste("Projections for",shp_name))
 
 ```
 
@@ -139,6 +147,10 @@ ggplot() +
 
 # Tuna data exploration
 
+## Rectangular extraction 
+
+This routine is working but outputs values for the whole rectangle with no coordinates
+
 ```{r tuna_data_exploration}
 
 source("functions.R")
@@ -166,13 +178,9 @@ for (sp in sps){
   
   # JEPA 
   dir <- paste("~/Data/ccz_tuna/")
-  
   file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
-  
-  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sps,"/RCP")
-  
+  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
   dir.out <- paste("~/Data/ccz_tuna/results/tables/")
-  
   file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
   
   
@@ -192,5 +200,167 @@ for (sp in sps){
 } # Close species loop
 
 
+```
+
+## Mimmic Figure 2
+
+COmes from script fig-2_maps
+
+```{r}
+
+#-----------PARAMETER section--------------------------------------------------------------
+sp = "yft"
+
+
+  if (sp=="skj"){  
+	var.max<-0.5; dvar.max<-0.11; 
+  }
+  if (sp=="yft"){
+	#yft max for CC models (no fishing) is 0.15 
+	var.max<-0.15; dvar.max<-0.065; 
+  }
+  if (sp=="bet"){
+	#bet max for CC models (no fishing) is 0.08
+	var.max<-0.08; dvar.max<-0.025; 
+  }
+
+  region<-c(120.5,289.5,-45,45)
+  
+  life.stage<-"adult";
+
+  rcp<-c(4.5,8.5)
+  # CM<-c("GFDL","IPSL","MIROC","MPI")
+  CM <- "GFDL"
+  SC<-c("REF","SO","SP","ST")
+
+  # JEPA 
+  dir <- paste("~/Data/ccz_tuna/")
+  file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
+  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
+  dir.out <- paste("~/Data/ccz_tuna/results/tables/")
+  file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
+  
+  
+  for (j in 1:length(CM))
+    for (i in 1:length(SC)){
+      file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                             sp,"_",life.stage,".dym",sep=""))
+      file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                             sp,"_",life.stage,".dym",sep=""))
+    }
+  
+  
+  
+  
+   if (any(c(plot.average,plot.anomaly))) plot.rcps<-TRUE
+  figs.dir <- paste("~/Data/ccz_tuna/results/figs/")
+  
+  # for (r in rcp){	  
+	    
+      if (r==2.6) files<-file.cc$rcp2.6
+      if (r==4.5) files<-file.cc$rcp4.5
+      if (r==8.5) files<-file.cc$rcp8.5
+      # if (plot.average){
+          t0<-c(2011,1); tfin<-c(2020,12)
+          my.title<-paste(floor(.5*(t0[1]+tfin[1]))," rcp",r,sep="")
+          read.plot.mean.vars.contour(files,
+			      var.name=paste(sp,"_",life.stage,"_",t0[1],"-",tfin[1],"_4models_rcp",r,sep=""),
+			      region,
+			      dt=30,
+			      mytitle=my.title,
+			      umax=var.max,
+			      user.scale=TRUE,
+			      add.eez=FALSE)
+      # }
+#       if (plot.anomaly){
+#           t0<-c(2044,1); tfin<-c(2053,12)
+#           my.title<-paste(floor(.5*(t0[1]+tfin[1]))," rcp",r,sep="")
+#           files.ref<-files; files.ctrl<-files
+#           read.plot.mean.vars.anomaly.contour(files.ref,files.ctrl,var.name=
+# 				paste(sp,"_",life.stage,"_",t0[1],"-",tfin[1],"_4models_rcp",r,"_anomaly_rcp_shade_by_sign",sep=""),
+# 				t0.ref=c(2011,1),tfin.ref=c(2020,12),region,dt=30,mytitle=my.title,umax=dvar.max,
+# 				user.scale=TRUE,add.eez=TRUE,shading.agreement=TRUE)
+#       }
+    # }
+  # }
+
+          
+          
+t0 <- c(2040,1)
+tfin <- c(2060,12)
+
+data<- read.var.dym(files[1],t0,tfin,region,dt = 30)
+vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
+nt<-length(tt) # months
+nt
+vars<-ifelse(vars<=0,NA,vars)
+var<-sum1d(vars)/nt
+  
+# if (length(file.names)>1){
+#     for (n in 2:length(file.names)){
+#       data<-read.var.dym(file.names[n],t0,tfin,coords,dt)
+#       vars<-data$var; 
+#       vars<-ifelse(vars<=0,NA,vars)
+#       var<-var + sum1d(vars)/nt
+#     }
+#   }
+  var<-var/length(files)
+
+  # 
+  var_df <- as.data.frame(var) %>% 
+    bind_cols(x)
+  colnames(var_df) <- c(y,"lon")
+  
+  fut_df <- var_df %>% 
+    gather("lat","value",1:46) %>% 
+    mutate(lonb = lon-360)
+  
+  
+  
+  
+  # ggplot() +
+  #   geom_tile(data = subset(test_df, !is.na(value)),
+  #     aes(
+  #       x = lonb,
+  #       y = as.numeric(lat),
+  #       fill = value
+  #     )
+  #   ) +
+  #   geom_sf(data = shp2,aes(), color = "red", fill ="NA") +
+  #   geom_sf(data = world_land,aes()) +
+  #   coord_sf(xlim = c(-180,-110),
+  #            ylim = c(-25,25)
+  #            ) +
+  #   scale_fill_viridis_c() +
+  #   ggtitle(paste(t0,tfin))
+  
+  
+  
+  # region
+  
+  dif_map = fut_df %>% 
+    rename(value_f =value) %>% 
+    left_join(hist_df, by = c("lonb","lat")) %>% 
+    mutate(change = (value_f-value)*100)
+  
+  
+  ggplot() +
+    geom_tile(data = subset(dif_map, !is.na(value)),
+      aes(
+        x = lonb,
+        y = as.numeric(lat),
+        fill = change*100
+      )
+    ) +
+    geom_sf(data = shp2,aes(), color = "red", fill ="NA") +
+    geom_sf(data = shp2, color = "orange", fill ="NA") +
+  geom_sf(data = shp1, color = "green", fill ="NA") +
+    geom_sf(data = world_land,aes()) +
+    coord_sf(xlim = c(-180,-110),
+             ylim = c(-45,45)
+             ) +
+    scale_fill_gradient2("Change(%)") +
+    ggtitle("Projected change of YFT by 2050 relative to present")
+  
 ```
 

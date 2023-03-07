@@ -156,7 +156,13 @@ ggplot() +
 
 # Percentage change maps
 
+To be discussed there is the option of using sensitivity analysis runs or just reference runs... Do they report just the reference model?
 
+REF = mean of four climate-derived (IPSL, GFDL, MIROC and MPI)
+NEMO-PISCES ocean simulations; ST = genetic adaptation to increasing temperature; SP = 10%
+increase of primary production in tropical region defined by 27°C isotherm; SO = no change in
+dissolved oxygen content over forecast period, and PH = negative impact of ocean acidification of larval
+survival (for yellowfin tuna only).
 
 ```{r tuna_data_extraction, eval = T, echo = F}
 
@@ -164,8 +170,8 @@ ggplot() +
 region <- c(120.5,289.5,-45,45)
 life.stage<-"adult";
 rcps <- c(4.5,8.5)
-# CM<-c("GFDL","IPSL","MIROC","MPI")
-CM <- "GFDL"
+CM<-c("GFDL","IPSL","MIROC","MPI")
+# CM <- "GFDL"
 SC <- c("REF","SO","SP","ST")
 spp <- c("skj","yft","bet")
 
@@ -339,7 +345,7 @@ for(s in 1:length(spp)){
       scale_fill_gradient2("Difference") +
       ggtitle(paste("Change of",sp ,"by 2050 relative to present under rcp",rcp))
     
-    name_save <- paste0("~/Data/ccz_tuna/results/figs/",sp,"_rcp",rcp,"_pixel_chg_2050.png")
+    name_save <- paste0("~/Data/ccz_tuna/results/figs/relative_change_all_esm/",sp,"_rcp",rcp,"_pixel_chg_2050.png")
     
     ggsave(name_save,
            last_plot()
@@ -364,7 +370,7 @@ for(s in 1:length(spp)){
       ggtitle(paste("CCZ change of",sp ,"by 2050 relative to present under rcp",rcp))
     
     
-    name_save <- paste0("~/Data/ccz_tuna/results/figs/",sp,"_rcp",rcp,"_ccz_chg_2050.png")
+    name_save <- paste0("~/Data/ccz_tuna/results/figs/relative_change_all_esm/",sp,"_rcp",rcp,"_ccz_chg_2050.png")
     
     ggsave(name_save,
            last_plot()
@@ -375,10 +381,6 @@ for(s in 1:length(spp)){
 }
 
 ```
-
-
-
-#@
 
 
 

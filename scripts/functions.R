@@ -1,99 +1,14 @@
-# From read_varDYM
-xtoi.dym<-function(x,xmin,dx) {
-  return(round((x-xmin)/dx,digits=0)+1)
-}
-# From read_varDYM
-ytoj.dym<-function(y,ymin,dy){
-  return(round((ymin-y)/dy,digits=0)+1)
-}
 
-# From utilities
-sum1d.d2b<-function(x,y,vars){#with density to biomass conversion (result in mt)
-  nt<-dim(vars)[1]
-  nx<-length(x)
-  dx<-60*(x[2]-x[1])
-  dy<-60*(y[2]-y[1])
-  #  print(c(dx,dy))
-  SUM<-array(NA,nt)
-  area<-cell.surface.area(y,dx,dy)
-  #  print(area)
-  for (i in 1:nt){
-    SUM[i]<-sum(t(vars[i,,])*area,na.rm=TRUE)
-  }
-  SUM<-ifelse(SUM==0,NA,SUM)
-  return(SUM)
-}
+# This script contains the subset of functions needed to run the analysis
+# All functions were created and taken from the code provided by Bell et al., 2021
+# Original files can be found in ... 
 
+# Functions are presented in order of usage for clarity
 
-cell.surface.area<-function(lat,dx,dy)
-{#returns the area of a cell on a sphere in sq.km
-  R = 6378.1;
-  Phi1 = lat*pi/180.0;
-  Phi2 = (lat+dy/60.0)*pi/180.0;
-  dx_radian = (dx/60.0)*pi/180;
-  S = R*R*dx_radian*(sin(Phi2)-sin(Phi1));
-  
-  return(S)
-}
+# Functions needed for the data_extraction() function
 
-cell.surface.area.2<-function(lat,dx,dy)
-{
-  g = (lat * pi) / 180.0;# transform lat(deg) in lat(radian)
-  
-  S<-dx*dy*1.852^2*cos(g)
-  
-  return(S)
-}
-
-#Run this function to extract time series of biomass over selected rectangular regions
-write.ts.reg<-function(file.in,t0=c(2000,1),tfin=c(2055,12),regs,file.mask="hist"){
-  
-  tt<-gen.monthly.dates(t0,tfin)
-  
-  var.reg<-array(NA,c(length(reg.names),length(tt))) #attn, reg.names should be a global variable
-  
-  for (r in 1:length(reg.names)) 
-    var.reg[r,]<-get2.B.ts(file.in,t0,tfin,regs[,r])
-  
-  tab.out<-cbind(paste(tt),round(t(var.reg),2))
-  colnames(tab.out)<-c("date",reg.names)
-  file.out<-paste(dir.out,sp,"_",file.mask,"_monthly_ts_regions.txt",sep="")
-  message("Writing table into the file ",file.out)
-  write.table(tab.out,file.out,row.names=FALSE,col.names=TRUE,quote=FALSE,sep="\t")
-}
-
-# From the Utilities file
-gen.monthly.dates<-function(t0,tfin){
-  
-  years<-seq(t0[1],tfin[1],1)
-  for (y in years){
-    dyear<-as.Date(paste(y,1:12,15,sep="-"))
-    is.out<-(dyear<as.Date(paste(t0[1],t0[2],15,sep="-"))|
-               dyear>as.Date(paste(tfin[1],tfin[2],15,sep="-")))
-    if (any(is.out))
-      dyear<-dyear[!is.out]
-    if (y==years[1]) dates<-dyear
-    if (y!=years[1]) dates<-c(dates,dyear)
-  }
-  return(dates)
-}
-
-
-#another version of the function to get the time series of total biomass over the 
-#period (t0,tfin) in the selected region. Used in the routines which have the file 
-#name as a variable. Also, this function uses the R IO routine to read DYM files
-# From the Utilities file
-get2.B.ts<-function(file,t0,tfin,region){
-  data<-read.var.dym(file,t0,tfin,region)
-  var1<-data$var; t<-data$t; x<-data$x; y<-data$y; 
-  var1<-ifelse(var1==0,NA,var1)
-  
-  res<-sum1d.d2b(x,y,var1)
-  return(res)
-}
-
-
-read.var.dym<-function(file.in,t0.user=NULL,tfin.user,region=c(NA,NA,NA,NA),dt=30,apply.mask=FALSE){
+# From read-sea-var.R script
+read.var.dym <- function(file.in,t0.user=NULL,tfin.user,region=c(NA,NA,NA,NA),dt=30,apply.mask=FALSE){
   
   #1-reading
   message("Reading file ",file.in,"...")	    
@@ -219,14 +134,60 @@ read.var.dym<-function(file.in,t0.user=NULL,tfin.user,region=c(NA,NA,NA,NA),dt=3
   }
   
   return(list(x=xlon[1,],y=rev(ylat[,1]),t=dates,var=data,landmask=mask))
+} #end  read.var.dym
+
+
+# Function needed to run read.var.dym()
+# From the Utilities script
+gen.monthly.dates <- function(t0,tfin){
+  
+  years<-seq(t0[1],tfin[1],1)
+  for (y in years){
+    dyear<-as.Date(paste(y,1:12,15,sep="-"))
+    is.out<-(dyear<as.Date(paste(t0[1],t0[2],15,sep="-"))|
+               dyear>as.Date(paste(tfin[1],tfin[2],15,sep="-")))
+    if (any(is.out))
+      dyear<-dyear[!is.out]
+    if (y==years[1]) dates<-dyear
+    if (y!=years[1]) dates<-c(dates,dyear)
+  }
+  return(dates)
 }
 
-
-
-year.month.sea<-function(ndat){
+# Function needed to run read.var.dym()
+# From the read_varDYM.R script
+year.month.sea <- function(ndat){
   year  <- trunc(ndat)
   days <- trunc((ndat - year)*365);
   date<-as.Date(paste(year,1,1,sep="-"))+days-1
   month<-as.integer(format(date,"%m"))
   return(c(year,month))
+}
+
+
+# From read_varDYM script
+xtoi.dym <- function(x,xmin,dx) {
+  return(round((x-xmin)/dx,digits=0)+1)
+}
+# From read_varDYM script
+ytoj.dym <- function(y,ymin,dy){
+  return(round((ymin-y)/dy,digits=0)+1)
+}
+
+
+# From the Utilities.R script
+sum1d <- function(vars){
+  
+  nx<-dim(vars)[2]
+  ny<-dim(vars)[3]
+  SUM<-array(NA,c(nx,ny))
+  
+  for (i in 1:nx){
+    for (j in 1:ny){
+      SUM[i,j]<-sum(vars[,i,j],na.rm=TRUE)
+    }
+  }
+  
+  SUM<-ifelse(SUM==0,NA,SUM)
+  return(SUM)
 }

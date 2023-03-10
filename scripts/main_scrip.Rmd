@@ -358,79 +358,82 @@ for(s in 1:length(spp)){
 
 time_series_fun <- function(sp,year){
   
-    dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
-    dir.h <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/HISTORICAL")
-    # Create loading paths
-    for (j in 1:length(CM))
+  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
+  dir.h <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/HISTORICAL")
+  # Create loading paths
+  for (j in 1:length(CM))
+    
+    # Determine climate change projections or historical values
+    
+    if(year < 2011){
       
-      # Determine climate change projections or historical values
+      file.h <- paste0(dir.h,"/output/output_F0/",sp,"_",life.stage,".dym",sep="")
       
-      if(year < 2011){
-        
-        file.h <- paste0(file.cc$rcp4.5,paste(dir.h,"/output/output_F0/",
-                                                 sp,"_",life.stage,".dym",sep=""))
-        
-        data_rcp85 <- data_extraction(file.cc$rcp8.5,
-                                     time_0 = c(year,1),
-                                     time_n = c(year,12),
-                                     region = region,
-                                     ccz = T
-        ) %>% 
-          rename(h_value = value) %>% 
-          mutate(year = year,
-                 rcp = "rcp85",
-                 spp = sp) %>% 
-          group_by(spp,rcp,zone,year) %>% 
-          summarise(total_value = sum(h_value, na.rm = T))
-        
-      }else{
+      data_h <- data_extraction(file.h,
+                                time_0 = c(year,1),
+                                time_n = c(year,12),
+                                region = region,
+                                ccz = T
+      ) %>% 
+        rename(h_value = value) %>% 
+        mutate(year = year,
+               rcp = "historical",
+               spp = sp) %>% 
+        group_by(spp,rcp,zone,year) %>% 
+        summarise(total_value = sum(h_value, na.rm = T))
+      
+      return(data_h)
+      
+    }else{
       for (i in 1:length(SC)){
         file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
                                                  sp,"_",life.stage,".dym",sep=""))
         file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
                                                sp,"_",life.stage,".dym",sep=""))
       }
-      }
-    
-    
-        
-        data_rcp85 <- data_extraction(file.cc$rcp8.5,
-                                     time_0 = c(year,1),
-                                     time_n = c(year,12),
-                                     region = region,
-                                     ccz = T
-        ) %>% 
-          rename(h_value = value) %>% 
-          mutate(year = year,
-                 rcp = "rcp85",
-                 spp = sp) %>% 
-          group_by(spp,rcp,zone,year) %>% 
-          summarise(total_value = sum(h_value, na.rm = T))
-        
-        
-      
-      data_rcp45 <- data_extraction(file.cc$rcp4.5,
-                              time_0 = c(year,1),
-                              time_n = c(year,12),
-                              region = region,
-                              ccz = T) %>% 
-        rename(h_value = value) %>% 
-        mutate(year = year,
-                 rcp = "rcp45",
-               spp = sp) %>% 
-        group_by(spp,rcp,zone,year) %>% 
-          summarise(total_value = sum(h_value, na.rm = T))
-      
-   
-      final_data <- bind_rows(data_rcp45,data_rcp85)
-       
+    }
+  
+  
+  
+  data_rcp85 <- data_extraction(file.cc$rcp8.5,
+                                time_0 = c(year,1),
+                                time_n = c(year,12),
+                                region = region,
+                                ccz = T
+  ) %>% 
+    rename(h_value = value) %>% 
+    mutate(year = year,
+           rcp = "rcp85",
+           spp = sp) %>% 
+    group_by(spp,rcp,zone,year) %>% 
+    summarise(total_value = sum(h_value, na.rm = T))
+  
+  
+  
+  data_rcp45 <- data_extraction(file.cc$rcp4.5,
+                                time_0 = c(year,1),
+                                time_n = c(year,12),
+                                region = region,
+                                ccz = T) %>% 
+    rename(h_value = value) %>% 
+    mutate(year = year,
+           rcp = "rcp45",
+           spp = sp) %>% 
+    group_by(spp,rcp,zone,year) %>% 
+    summarise(total_value = sum(h_value, na.rm = T))
+  
+  
+  final_data <- bind_rows(data_rcp45,data_rcp85)
+  
   # }
   
   return(final_data)
   
 }
-    
+
 # Test function
+# time_series_fun("yft",2010)
+
 # x <- bind_rows(
 #   time_series_fun("yft",2020),
 #   time_series_fun("skj",2020),
@@ -438,11 +441,11 @@ time_series_fun <- function(sp,year){
 #   )
 
 # Set years for function
-years <- seq(2011,2013,1)
+years <- seq(1980,,1)
 
 suppressMessages( # remove annoying messages from function
   
-  for(s in 1:3){
+  for(s in 1){
     
     time_series_data <- bind_rows(
       lapply(years, time_series_fun, sp = spp[s])

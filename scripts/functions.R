@@ -1,7 +1,8 @@
 
 # This script contains the subset of functions needed to run the analysis
 # All functions were created and taken from the code provided by Bell et al., 2021
-# Original files can be found in ... 
+# Original files can be found in... https://doi.org/10.1038/s41893-021-00745-z.
+
 
 # Functions are presented in order of usage for clarity
 
@@ -191,3 +192,185 @@ sum1d <- function(vars){
   SUM<-ifelse(SUM==0,NA,SUM)
   return(SUM)
 }
+
+#### Functions for data analysis ####
+
+
+# Function to extract data as percentage change of a period vs another
+# From read-sea-var.R
+# read.plot.mean.vars.contour()
+data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
+  
+  t0 <- time_0
+  tfin <- time_n
+  
+  #1. Read file.names data and average in time and over runs
+  data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
+  vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
+  nt <- length(tt) # months
+  vars<-ifelse(vars<=0,NA,vars)
+  var <- sum1d(vars)/nt
+  
+  if (length(files)>1){
+    for (n in 2:length(files)){
+      data<-read.var.dym(files[n],t0,tfin,region,dt = 30)
+      vars<-data$var; 
+      vars<-ifelse(vars<=0,NA,vars)
+      var<-var + sum1d(vars)/nt
+    }
+  }
+  
+  var<-var/length(files)
+  
+  # Transform to df
+  var_df <- as.data.frame(var) %>% 
+    bind_cols(x)
+  colnames(var_df) <- c(y,"lon")
+  
+  df <- var_df %>%
+    gather("lat","value",1:46) %>%
+    mutate(lon = lon-360,
+           lat = as.numeric(lat)) %>% 
+    rowid_to_column()
+  
+  if(ccz == TRUE){
+    
+    ccz_index <- read_csv("~/Data/ccz_tuna/spatial/ccz_index.csv",show_col_types = FALSE)
+    df <- df %>% 
+      mutate(zone = ifelse(rowid %in% ccz_index$rowid,"CCZ","Outside"))
+    return(df)
+  }else{
+    return(df)
+  }
+}# From read-sea-var.R
+# read.plot.mean.vars.contour()
+data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
+  
+  t0 <- time_0
+  tfin <- time_n
+  
+  #1. Read file.names data and average in time and over runs
+  data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
+  vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
+  nt <- length(tt) # months
+  vars<-ifelse(vars<=0,NA,vars)
+  var <- sum1d(vars)/nt
+  
+  if (length(files)>1){
+    for (n in 2:length(files)){
+      data<-read.var.dym(files[n],t0,tfin,region,dt = 30)
+      vars<-data$var; 
+      vars<-ifelse(vars<=0,NA,vars)
+      var<-var + sum1d(vars)/nt
+    }
+  }
+  
+  var<-var/length(files)
+  
+  # Transform to df
+  var_df <- as.data.frame(var) %>% 
+    bind_cols(x)
+  colnames(var_df) <- c(y,"lon")
+  
+  df <- var_df %>%
+    gather("lat","value",1:46) %>%
+    mutate(lon = lon-360,
+           lat = as.numeric(lat)) %>% 
+    rowid_to_column()
+  
+  if(ccz == TRUE){
+    
+    ccz_index <- read_csv("~/Data/ccz_tuna/spatial/ccz_index.csv",show_col_types = FALSE)
+    df <- df %>% 
+      mutate(zone = ifelse(rowid %in% ccz_index$rowid,"CCZ","Outside"))
+    return(df)
+  }else{
+    return(df)
+  }
+}
+
+# Function to extract data as time series
+
+time_series_fun <- function(sp,year){
+  
+  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
+  dir.h <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/HISTORICAL")
+  # Create loading paths
+  for (j in 1:length(CM))
+    
+    # Determine climate change projections or historical values
+    
+    if(year < 2011){
+      
+      file.h <- paste0(dir.h,"/output/output_F0/",sp,"_",life.stage,".dym",sep="")
+      
+      data_h <- data_extraction(file.h,
+                                time_0 = c(year,1),
+                                time_n = c(year,12),
+                                region = region,
+                                ccz = T
+      ) %>% 
+        rename(h_value = value) %>% 
+        mutate(year = year,
+               rcp = "historical",
+               spp = sp) %>% 
+        group_by(spp,rcp,zone,year) %>% 
+        summarise(total_value = sum(h_value, na.rm = T))
+      
+      return(data_h)
+      
+    }else{
+      for (i in 1:length(SC)){
+        file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                                 sp,"_",life.stage,".dym",sep=""))
+        file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                               sp,"_",life.stage,".dym",sep=""))
+      }
+    }
+  
+  
+  
+  data_rcp85 <- data_extraction(file.cc$rcp8.5,
+                                time_0 = c(year,1),
+                                time_n = c(year,12),
+                                region = region,
+                                ccz = T
+  ) %>% 
+    rename(h_value = value) %>% 
+    mutate(year = year,
+           rcp = "rcp85",
+           spp = sp) %>% 
+    group_by(spp,rcp,zone,year) %>% 
+    summarise(total_value = sum(h_value, na.rm = T))
+  
+  
+  
+  data_rcp45 <- data_extraction(file.cc$rcp4.5,
+                                time_0 = c(year,1),
+                                time_n = c(year,12),
+                                region = region,
+                                ccz = T) %>% 
+    rename(h_value = value) %>% 
+    mutate(year = year,
+           rcp = "rcp45",
+           spp = sp) %>% 
+    group_by(spp,rcp,zone,year) %>% 
+    summarise(total_value = sum(h_value, na.rm = T))
+  
+  
+  final_data <- bind_rows(data_rcp45,data_rcp85)
+  
+  # }
+  
+  return(final_data)
+  
+}
+
+# Test function
+# time_series_fun("yft",2010)
+
+# x <- bind_rows(
+#   time_series_fun("yft",2020),
+#   time_series_fun("skj",2020),
+#   time_series_fun("bet",2020)
+#   )

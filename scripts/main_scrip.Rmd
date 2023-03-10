@@ -177,20 +177,21 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
   tfin <- time_n
   
   #1. Read file.names data and average in time and over runs
+   data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
+    vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
+    nt <- length(tt) # months
+    vars<-ifelse(vars<=0,NA,vars)
+    var <- sum1d(vars)/nt
   
-  if (length(files)>1){
+    if (length(files)>1){
     for (n in 2:length(files)){
       data<-read.var.dym(files[n],t0,tfin,region,dt = 30)
       vars<-data$var; 
       vars<-ifelse(vars<=0,NA,vars)
       var<-var + sum1d(vars)/nt
     }
-  }else{
-    data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
-    vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
-    nt <- length(tt) # months
-    var <- sum1d(vars)/nt
   }
+   
   var<-var/length(files)
   
   # Transform to df
@@ -352,7 +353,7 @@ for(s in 1:length(spp)){
 ```
 
 
-# year by year
+# Time Series analysis
 
 ```{r}
 
@@ -441,7 +442,18 @@ time_series_fun <- function(sp,year){
 #   )
 
 # Set years for function
-years <- seq(1980,,1)
+years <- seq(2009,2012,1)
+
+source("../scripts/functions.R")
+# GLobal variables
+region <- c(120.5,289.5,-45,45)
+life.stage<-"adult";
+rcps <- c(4.5,8.5)
+CM<-c("GFDL","IPSL","MIROC","MPI")
+# CM <- "GFDL"
+# SC <- c("REF","SO","SP","ST")
+SC <- "REF"
+spp <- c("skj","yft","bet")
 
 suppressMessages( # remove annoying messages from function
   

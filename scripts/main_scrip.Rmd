@@ -67,19 +67,22 @@ The acronyms are the theee different mineral resources, and each of those corres
 shp_path <- "/Users/juliano/Data/ccz_tuna/spatial/"
 shp_name <- "cfc"
 
-shp05 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_0.5.shp")) # 50 kmm buffer
-shp1 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_1.shp")) # 100 kmm buffer
-shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) # 200 kmm buffer
+shp05 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_0.5.shp")) %>% 
+  mutate(Buffer = 50)# 50 kmm buffer
+shp1 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_1.shp")) %>% 
+    mutate(Buffer = 100) # 100 kmm buffer
+shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) %>% 
+    mutate(Buffer = 200) # 200 kmm buffer
 
 world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
   st_transform(crs = 4326)
 
-ggplot() +
-  geom_sf(data = shp2, color = "blue") +
-  geom_sf(data = shp1, color = "green") +
-  geom_sf(data = shp05, color = "red") +
-  geom_sf(data = world_land, aes()) +
-  ggtitle(paste("Projections for",shp_name))
+# ggplot() +
+#   geom_sf(data = shp2, color = "blue") +
+#   geom_sf(data = shp1, color = "green") +
+#   geom_sf(data = shp05, color = "red") +
+#   geom_sf(data = world_land, aes()) +
+#   ggtitle(paste("Projections for",shp_name))
 
 ```
 
@@ -111,12 +114,12 @@ shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) %>% # 200 kmm b
 world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
   st_transform(crs = 4326)
 
-ggplot() +
-  geom_sf(data = shp2, color = "blue") +
-  geom_sf(data = shp1, color = "green") +
-  geom_sf(data = shp05, color = "red") +
-  geom_sf(data = world_land, aes()) +
-  ggtitle(paste("Projections for",shp_name))
+# ggplot() +
+#   geom_sf(data = shp2, color = "blue") +
+#   geom_sf(data = shp1, color = "green") +
+#   geom_sf(data = shp05, color = "red") +
+#   geom_sf(data = world_land, aes()) +
+#   ggtitle(paste("Projections for",shp_name))
 
 ```
 
@@ -166,24 +169,6 @@ survival (for yellowfin tuna only).
 
 ```{r tuna_data_extraction, eval = T, echo = F}
 
-# GLobal variables
-region <- c(120.5,289.5,-45,45)
-life.stage<-"adult";
-rcps <- c(4.5,8.5)
-CM<-c("GFDL","IPSL","MIROC","MPI")
-# CM <- "GFDL"
-SC <- c("REF","SO","SP","ST")
-spp <- c("skj","yft","bet")
-
-
-# Directories
-# file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
-dir <- paste("~/Data/ccz_tuna/")
-
-# dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
-dir.out <- paste("~/Data/ccz_tuna/results/tables/")
-file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
-
 # From read-sea-var.R
 # read.plot.mean.vars.contour()
 data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
@@ -192,10 +177,6 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
   tfin <- time_n
   
   #1. Read file.names data and average in time and over runs
-  data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
-  vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
-  nt <- length(tt) # months
-  var <- sum1d(vars)/nt
   
   if (length(files)>1){
     for (n in 2:length(files)){
@@ -204,9 +185,15 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
       vars<-ifelse(vars<=0,NA,vars)
       var<-var + sum1d(vars)/nt
     }
+  }else{
+    data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
+    vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
+    nt <- length(tt) # months
+    var <- sum1d(vars)/nt
   }
   var<-var/length(files)
-  # 
+  
+  # Transform to df
   var_df <- as.data.frame(var) %>% 
     bind_cols(x)
   colnames(var_df) <- c(y,"lon")
@@ -221,7 +208,7 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
     
     ccz_index <- read_csv("~/Data/ccz_tuna/spatial/ccz_index.csv",show_col_types = FALSE)
     df <- df %>% 
-      filter(rowid %in% ccz_index$rowid)
+      mutate(zone = ifelse(rowid %in% ccz_index$rowid,"CCZ","Outside"))
     return(df)
   }else{
     return(df)
@@ -265,6 +252,34 @@ write_csv(ccz_index,"ccz_index.csv")
 
 ```{r run_routine_pixel, eval = T, message = F}
 
+source("../scripts/functions.R")
+# GLobal variables
+region <- c(120.5,289.5,-45,45)
+life.stage<-"adult";
+rcps <- c(4.5,8.5)
+CM<-c("GFDL","IPSL","MIROC","MPI")
+# CM <- "GFDL"
+# SC <- c("REF","SO","SP","ST")
+SC <- "REF"
+spp <- c("skj","yft","bet")
+
+# Time frames
+h_time_0 <- c(2011,1)
+h_time_n <- c(2012,12)
+
+f_time_0 <- c(2040,1)
+f_time_n <- c(2060,12)
+
+
+# Directories
+# file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
+dir <- paste("~/Data/ccz_tuna/")
+
+# dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
+dir.out <- paste("~/Data/ccz_tuna/results/tables/")
+file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
+
+
 for(s in 1:length(spp)){
   
   sp <- spp[s]
@@ -286,16 +301,16 @@ for(s in 1:length(spp)){
     if(rcp == "8.5"){
       
       hist_data <- data_extraction(file.cc$rcp8.5,
-                                   time_0 = c(2000,1),
-                                   time_n = c(2020,12),
+                                   time_0 = h_time_0,
+                                   time_n = h_time_n,
                                    region = region,
                                    ccz = T
-                                   ) %>% 
+      ) %>% 
         rename(h_value = value)
       
       future_data <- data_extraction(file.cc$rcp8.5,
-                                     time_0 = c(2040,1),
-                                     time_n = c(2060,12),
+                                     time_0 = f_time_0,
+                                     time_n = f_time_n,
                                      region = region,
                                      ccz = T) %>% 
         rename(f_value = value)
@@ -303,15 +318,15 @@ for(s in 1:length(spp)){
       
     }else{
       hist_data <- data_extraction(file.cc$rcp4.5,
-                                   time_0 = c(2000,1),
-                                   time_n = c(2020,12),
+                                   time_0 = h_time_0,
+                                   time_n = h_time_n,
                                    region = region,
                                    ccz = T) %>% 
         rename(h_value = value)
       
       future_data <- data_extraction(file.cc$rcp4.5,
-                                     time_0 = c(2040,1),
-                                     time_n = c(2060,12),
+                                     time_0 = f_time_0,
+                                     time_n = f_time_n,
                                      region = region,
                                      ccz = T) %>% 
         rename(f_value = value)
@@ -321,60 +336,14 @@ for(s in 1:length(spp)){
     diff_data <- hist_data %>% 
       left_join(future_data) %>% 
       mutate(per_change = ((f_value-h_value)/h_value)*100,
-             zone = "ccv")
+             spp = sp,
+             rcp = rcp)
     
-    # Map by pixel version within the CCZ
+    ### Save extracted dataset
+    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/relative_change_all_esm/",sp,"_rcp",rcp,"_pixel_chg_2050.csv")
     
-    ggplot() +
-      geom_tile(data = diff_data,
-                aes(
-                  x = lon,
-                  y = as.numeric(lat),
-                  fill = per_change
-                )
-      ) +
-      geom_sf(data = shp2,aes(), color = "red", fill ="NA") +
-      geom_sf(data = shp2, color = "orange", fill ="NA") +
-      geom_sf(data = shp1, color = "green", fill ="NA") +
-      geom_sf(data = world_land,aes()) +
-      coord_sf(xlim = c(-180,-110),
-               ylim = c(-35,45)
-      ) +
-      labs(x = "Long",
-           y = "Lat") + 
-      scale_fill_gradient2("Difference") +
-      ggtitle(paste("Change of",sp ,"by 2050 relative to present under rcp",rcp))
-    
-    name_save <- paste0("~/Data/ccz_tuna/results/figs/relative_change_all_esm/",sp,"_rcp",rcp,"_pixel_chg_2050.png")
-    
-    ggsave(name_save,
-           last_plot()
-    )
-    
-    # AGGREGATED VERSION ON THE CCZ
-    
-    diff_data_sf <- st_as_sf(diff_data,
-                             coords = c("lon","lat"),
-                             crs =4326
-    )
-    
-    st_join(shp2,diff_data_sf,
-            join = st_intersects) %>% 
-      gather("time","value",h_value:f_value) %>% 
-      group_by(CONTRACTOR,time) %>% 
-      summarise(total_area = sum(value,na.rm = T)) %>% 
-      spread(time,total_area) %>% 
-      mutate(per_change = round((f_value-h_value)/h_value*100)) %>% 
-      ggplot() +
-      geom_sf(aes(fill = per_change)) +
-      ggtitle(paste("CCZ change of",sp ,"by 2050 relative to present under rcp",rcp))
-    
-    
-    name_save <- paste0("~/Data/ccz_tuna/results/figs/relative_change_all_esm/",sp,"_rcp",rcp,"_ccz_chg_2050.png")
-    
-    ggsave(name_save,
-           last_plot()
-    )
+    write_csv(x = diff_data,
+              file = data_name_save)
     
   }
   
@@ -382,6 +351,227 @@ for(s in 1:length(spp)){
 
 ```
 
+
+# year by year
+
+```{r}
+
+time_series_fun <- function(sp,year){
+  
+    dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
+    dir.h <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/HISTORICAL")
+    # Create loading paths
+    for (j in 1:length(CM))
+      
+      # Determine climate change projections or historical values
+      
+      if(year < 2011){
+        
+        file.h <- paste0(file.cc$rcp4.5,paste(dir.h,"/output/output_F0/",
+                                                 sp,"_",life.stage,".dym",sep=""))
+        
+        data_rcp85 <- data_extraction(file.cc$rcp8.5,
+                                     time_0 = c(year,1),
+                                     time_n = c(year,12),
+                                     region = region,
+                                     ccz = T
+        ) %>% 
+          rename(h_value = value) %>% 
+          mutate(year = year,
+                 rcp = "rcp85",
+                 spp = sp) %>% 
+          group_by(spp,rcp,zone,year) %>% 
+          summarise(total_value = sum(h_value, na.rm = T))
+        
+      }else{
+      for (i in 1:length(SC)){
+        file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                                 sp,"_",life.stage,".dym",sep=""))
+        file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
+                                               sp,"_",life.stage,".dym",sep=""))
+      }
+      }
+    
+    
+        
+        data_rcp85 <- data_extraction(file.cc$rcp8.5,
+                                     time_0 = c(year,1),
+                                     time_n = c(year,12),
+                                     region = region,
+                                     ccz = T
+        ) %>% 
+          rename(h_value = value) %>% 
+          mutate(year = year,
+                 rcp = "rcp85",
+                 spp = sp) %>% 
+          group_by(spp,rcp,zone,year) %>% 
+          summarise(total_value = sum(h_value, na.rm = T))
+        
+        
+      
+      data_rcp45 <- data_extraction(file.cc$rcp4.5,
+                              time_0 = c(year,1),
+                              time_n = c(year,12),
+                              region = region,
+                              ccz = T) %>% 
+        rename(h_value = value) %>% 
+        mutate(year = year,
+                 rcp = "rcp45",
+               spp = sp) %>% 
+        group_by(spp,rcp,zone,year) %>% 
+          summarise(total_value = sum(h_value, na.rm = T))
+      
+   
+      final_data <- bind_rows(data_rcp45,data_rcp85)
+       
+  # }
+  
+  return(final_data)
+  
+}
+    
+# Test function
+# x <- bind_rows(
+#   time_series_fun("yft",2020),
+#   time_series_fun("skj",2020),
+#   time_series_fun("bet",2020)
+#   )
+
+# Set years for function
+years <- seq(2011,2013,1)
+
+suppressMessages( # remove annoying messages from function
+  
+  for(s in 1:3){
+    
+    time_series_data <- bind_rows(
+      lapply(years, time_series_fun, sp = spp[s])
+    ) 
+  }
+)
+
+
+    ### Save extracted dataset
+    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/relative_change_all_esm/",sp,"_rcp",rcp,"_pixel_chg_2050.csv")
+    
+    write_csv(x = diff_data,
+              file = data_name_save)
+    
+
+```
+
+
+
+# Nice plot
+
+## Get the data
+
+```{r get_data}
+
+source_file <- list.files("~/Data/ccz_tuna/results/tables/relative_change_all_esm/",full.names = T)
+
+all_spp <- bind_rows(
+  lapply(source_file, read.csv)
+)
+
+
+```
+
+
+## Plot grid
+
+```{r}
+
+all_spp %>% 
+  mutate(per_change = ifelse(per_change>100,100,per_change)) %>%
+ggplot() +
+  geom_tile(
+    aes(
+      x = lon,
+      y = lat,
+      fill = per_change,
+      color = per_change
+    )
+  ) +
+  geom_sf(data = shp05,aes(), color = "red", fill ="NA") +
+  geom_sf(data = shp1, color = "grey", fill ="NA") +
+  geom_sf(data = shp2, color = "black", fill ="NA") +
+  geom_sf(data = world_land,aes()) +
+  coord_sf(xlim = c(-180,-110),
+           ylim = c(-35,45)
+  ) +
+  labs(x = "",
+       y = "") + 
+  # scale_fill_viridis_c("") +
+  # scale_color_viridis_c("") +
+    scale_fill_gradient2("") +
+    scale_color_gradient2("") +
+  my_ggtheme_m(map_type = "reg", leg_pos = "right") +
+  theme(axis.text.x = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank()) +
+  # theme(
+  #   panel.background = element_blank(), 
+  #   strip.background = element_blank(), 
+  #   panel.border = element_blank(), 
+  #   panel.grid.minor = element_blank(),
+  #   panel.grid.major = element_blank(),
+  #   axis.line = element_line(color = "black"), 
+  #   axis.ticks = element_blank(),
+  #   axis.text.x = element_text(size = 10, face = "plain", color = "black"), 
+  #   axis.text.y = element_text(size = 10, color = "black")
+  # ) +
+  facet_grid(rcp~spp)
+
+ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp.png",
+       last_plot(),
+       height = 8,
+       width = 10
+        
+    )
+
+```
+
+
+## Aggregated version
+
+```{r aggregated_map, message = F}
+
+all_spp_sf <- st_as_sf(all_spp,
+                             coords = c("lon","lat"),
+                             crs =4326
+    )
+    
+    st_join(shp05,
+            all_spp_sf,
+            join = st_intersects) %>% 
+      gather("time","value",h_value:f_value) %>% 
+      group_by(CONTRACTOR,time,spp,rcp) %>% 
+      summarise(total_area = sum(value,na.rm = T)) %>% 
+      spread(time,total_area) %>% 
+      mutate(per_change = round((f_value-h_value)/h_value*100)) %>% 
+      ggplot() +
+      geom_sf(data = world_land,aes()) +
+      geom_sf(aes(fill = per_change)) +
+      coord_sf(xlim = c(-180,-110),
+           ylim = c(-35,45)
+           ) +
+      scale_fill_viridis_c("") +
+      my_ggtheme_m(map_type = "reg", leg_pos = "right") +
+  theme(axis.text.x = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank()) +
+      facet_grid(rcp~spp)
+    
+    
+    ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/all_spp_agg.png",
+       last_plot(),
+       height = 8,
+       width = 10
+        
+    )
+    
+```
 
 
 # Obsolete code

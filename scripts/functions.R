@@ -243,56 +243,12 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
     return(df)
   }
 }# From read-sea-var.R
-# read.plot.mean.vars.contour()
-data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
-  
-  t0 <- time_0
-  tfin <- time_n
-  
-  #1. Read file.names data and average in time and over runs
-  data <- read.var.dym(files[1],t0,tfin,region,dt = 30)
-  vars<-data$var; tt<-data$t; x<-data$x; y<-data$y;
-  nt <- length(tt) # months
-  vars<-ifelse(vars<=0,NA,vars)
-  var <- sum1d(vars)/nt
-  
-  if (length(files)>1){
-    for (n in 2:length(files)){
-      data<-read.var.dym(files[n],t0,tfin,region,dt = 30)
-      vars<-data$var; 
-      vars<-ifelse(vars<=0,NA,vars)
-      var<-var + sum1d(vars)/nt
-    }
-  }
-  
-  var<-var/length(files)
-  
-  # Transform to df
-  var_df <- as.data.frame(var) %>% 
-    bind_cols(x)
-  colnames(var_df) <- c(y,"lon")
-  
-  df <- var_df %>%
-    gather("lat","value",1:46) %>%
-    mutate(lon = lon-360,
-           lat = as.numeric(lat)) %>% 
-    rowid_to_column()
-  
-  if(ccz == TRUE){
-    
-    ccz_index <- read_csv("~/Data/ccz_tuna/spatial/ccz_index.csv",show_col_types = FALSE)
-    df <- df %>% 
-      mutate(zone = ifelse(rowid %in% ccz_index$rowid,"CCZ","Outside"))
-    return(df)
-  }else{
-    return(df)
-  }
-}
+
 
 # Function to extract data as time series
 
 time_series_fun <- function(sp,year){
-  
+  # print(sp)
   dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
   dir.h <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/HISTORICAL")
   # Create loading paths
@@ -327,7 +283,6 @@ time_series_fun <- function(sp,year){
                                                sp,"_",life.stage,".dym",sep=""))
       }
     }
-  
   
   
   data_rcp85 <- data_extraction(file.cc$rcp8.5,

@@ -308,9 +308,6 @@ for(s in 1:length(spp)){
 ```{r}
 
 
-# Set years for function
-years <- seq(1980,2094,1)
-
 source("../scripts/functions.R")
 # GLobal variables
 region <- c(120.5,289.5,-45,45)
@@ -318,27 +315,58 @@ life.stage<-"adult";
 rcps <- c(4.5,8.5)
 CM<-c("GFDL","IPSL","MIROC","MPI")
 # CM <- "GFDL"
-# SC <- c("REF","SO","SP","ST")
-SC <- "REF"
+SC <- c("REF","SO","SP","ST")
+# SC <- "REF"
 spp <- c("skj","yft","bet")
+# Set years for function
+years <- seq(1980,2050,1)
+
+# Files paths
+file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
 
 suppressMessages( # remove annoying messages from function
   
-  for(s in 1){
-    
     time_series_data <- bind_rows(
-      lapply(years, time_series_fun, sp = spp[s])
+      lapply(years, time_series_fun, sp = "skj"),
+      lapply(years, time_series_fun, sp = "yft"),
+      lapply(years, time_series_fun, sp = "bet")
     ) 
-  }
+
 )
 
-
     ### Save extracted dataset
-    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/relative_change_all_esm/",sp,"_rcp",rcp,"_pixel_chg_2050.csv")
+    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/time_series_all_esm.csv")
     
-    write_csv(x = diff_data,
+    write_csv(x = time_series_data,
               file = data_name_save)
     
+
+```
+
+
+```{r}
+
+time_series_data %>% 
+  filter(zone == "CCZ") %>% 
+  ggplot() +
+  geom_line(
+    aes(x = year,
+        y = total_value,
+        color = rcp)
+  ) +
+  labs(y = "Total biomas (10^6mt)",
+       x = "Year") +
+  facet_wrap(~spp, scales = "free") +
+  scale_color_manual("RCP", values = c("black","green4","red")) +
+  my_ggtheme_p()
+
+# Save plot
+ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",
+       last_plot(),
+       height = 5,
+       width = 10
+        
+    )
 
 ```
 

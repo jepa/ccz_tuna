@@ -49,7 +49,9 @@ sf::sf_use_s2(use_s2 = FALSE)
 
 ```
 
-# Spatial exploration
+# Methods
+
+## Spatial exploration
 
 From Jesse Van Der Grient at UH
 
@@ -60,7 +62,7 @@ I have added my shapefiles (see link below) based on 50, 100, and 200 km away fr
 The acronyms are the theee different mineral resources, and each of those corresponds to areas where exploration licences have been granted in different oceans. For this project we will focus on PMN - polymetallic nodules of the Pacific Ocean.
 
 
-## Map of CFC - cobalt ferromanganese crusts
+### Map of CFC - cobalt ferromanganese crusts (NOT)
 
 ```{r cmc_maps, eval = F, echo = F}
 
@@ -86,7 +88,7 @@ world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>%
 
 ```
 
-## PMN - polymetallic nodules
+### PMN - polymetallic nodules (YES)
 
 ```{r pms_maps, eval = T, echo = T, message = FALSE}
 
@@ -121,17 +123,55 @@ world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>%
 #   geom_sf(data = world_land, aes()) +
 #   ggtitle(paste("Projections for",shp_name))
 
+
 ```
 
-### Create working grid
+
+#### Supplemental figure for study area
 
 ```{r}
 
+# RFMO map
+rfmo_map <- my_sf("RFMO") %>% 
+  filter(RFMO_nm_s %in% c("IATTC","WCPFC")) %>% #44 and
+  st_simplify(preserveTopology = TRUE, dTolerance = 0.1) %>% 
+  st_shift_longitude() #Shitfs longitudes ti center the pacific
+
+world_eez <- my_sf("SAU",simple = 1000)
+
+world_land <- world_land <- ne_countries(scale = 'medium', returnclass = c("sp"))
+
+# Crop world land to match pacific centered map
+# https://rpubs.com/valentin/pacific-centered-map-voronoi-tessellation
+box_cut <- bbox2SP(n = 90, s = -90, w = -70, e = 90, proj4string = world_land@proj4string)
+
+# Crop it
+world_crop <- gDifference(world_land, box_cut) %>% 
+  st_as_sf() %>% # change from sp to sf object/class
+  st_shift_longitude() %>% # Shift it
+  st_simplify(preserveTopology = TRUE, dTolerance = 0.1)
+
+  
+rfmo_map %>%
+  st_simplify(preserveTopology = TRUE, dTolerance = 1) %>%
+  st_shift_longitude() %>%
+  ggplot() +
+  # geom_sf(data = world_crop, aes())
+  geom_sf(aes(fill = RFMO_nm_s, color = RFMO_nm_s)) +
+  geom_sf(data = world_crop, aes(), fill = "beige",color ="black") +
+  theme_bw() +
+  scale_fill_brewer("RFMO") +
+  scale_color_brewer("RFMO") +
+  geom_sf(data = shp05 %>% st_shift_longitude(),aes(), color = "red", fill ="NA") +
+  geom_sf(data = shp1 %>% st_shift_longitude(), color = "grey", fill ="NA") +
+  geom_sf(data = shp2 %>% st_shift_longitude(), color = "black", fill ="NA")
+  
+
+
+
 ```
 
-
-
-## PMS - polymetallic sulphides
+### PMS - polymetallic sulphides (NOT)
 
 ```{r pms_maps, eval = F, echo = F}
 
@@ -155,9 +195,7 @@ ggplot() +
 ```
 
 
-
-
-# Percentage change maps
+## Percentage change maps
 
 To be discussed there is the option of using sensitivity analysis runs or just reference runs... Do they report just the reference model?
 
@@ -198,115 +236,12 @@ write_csv(ccz_index,"ccz_index.csv")
 ```
 
 
+# Results
 
-## Rutine by pixel
+## Results Control Panel
 
-```{r run_routine_pixel, eval = T, message = F}
-
-source("../scripts/functions.R")
-# GLobal variables
-region <- c(120.5,289.5,-45,45)
-life.stage<-"adult";
-rcps <- c(4.5,8.5)
-CM<-c("GFDL","IPSL","MIROC","MPI")
-# CM <- "GFDL"
-# SC <- c("REF","SO","SP","ST")
-SC <- "REF"
-spp <- c("skj","yft","bet")
-
-# Time frames
-h_time_0 <- c(2011,1)
-h_time_n <- c(2012,12)
-
-f_time_0 <- c(2040,1)
-f_time_n <- c(2060,12)
-
-
-# Directories
-# file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
-dir <- paste("~/Data/ccz_tuna/")
-
-# dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
-dir.out <- paste("~/Data/ccz_tuna/results/tables/")
-file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
-
-
-for(s in 1:length(spp)){
-  
-  sp <- spp[s]
-  
-  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
-  # Create loading paths
-  for (j in 1:length(CM))
-    for (i in 1:length(SC)){
-      file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
-                                               sp,"_",life.stage,".dym",sep=""))
-      file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
-                                             sp,"_",life.stage,".dym",sep=""))
-    }
-  
-  for(r in 1:2){
-    
-    rcp = rcps[r]
-    
-    if(rcp == "8.5"){
-      
-      hist_data <- data_extraction(file.cc$rcp8.5,
-                                   time_0 = h_time_0,
-                                   time_n = h_time_n,
-                                   region = region,
-                                   ccz = T
-      ) %>% 
-        rename(h_value = value)
-      
-      future_data <- data_extraction(file.cc$rcp8.5,
-                                     time_0 = f_time_0,
-                                     time_n = f_time_n,
-                                     region = region,
-                                     ccz = T) %>% 
-        rename(f_value = value)
-      
-      
-    }else{
-      hist_data <- data_extraction(file.cc$rcp4.5,
-                                   time_0 = h_time_0,
-                                   time_n = h_time_n,
-                                   region = region,
-                                   ccz = T) %>% 
-        rename(h_value = value)
-      
-      future_data <- data_extraction(file.cc$rcp4.5,
-                                     time_0 = f_time_0,
-                                     time_n = f_time_n,
-                                     region = region,
-                                     ccz = T) %>% 
-        rename(f_value = value)
-    }
-    
-    # Estimate simple difference between time periods
-    diff_data <- hist_data %>% 
-      left_join(future_data) %>% 
-      mutate(per_change = ((f_value-h_value)/h_value)*100,
-             spp = sp,
-             rcp = rcp)
-    
-    ### Save extracted dataset
-    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/relative_change_all_esm/",sp,"_rcp",rcp,"_pixel_chg_2050.csv")
-    
-    write_csv(x = diff_data,
-              file = data_name_save)
-    
-  }
-  
-}
-
-```
-
-
-# Time Series analysis
 
 ```{r}
-
 
 source("../scripts/functions.R")
 # GLobal variables
@@ -318,81 +253,74 @@ CM<-c("GFDL","IPSL","MIROC","MPI")
 SC <- c("REF","SO","SP","ST")
 # SC <- "REF"
 spp <- c("skj","yft","bet")
-# Set years for function
-years <- seq(1980,2050,1)
+
 
 # Files paths
 file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
+```
+
+## Proportion change
+
+```{r}
+
+# Historical proportion
+# Set years for function
+years <- seq(2009,2018,1)
 
 suppressMessages( # remove annoying messages from function
   
-    time_series_data <- bind_rows(
-      lapply(years, time_series_fun, sp = "skj"),
-      lapply(years, time_series_fun, sp = "yft"),
-      lapply(years, time_series_fun, sp = "bet")
-    ) 
+  proportion_hist <- bind_rows(
+    lapply(years, data_analysis, sp = "skj", output = "NA"),
+    lapply(years, data_analysis, sp = "yft", output = "NA"),
+    lapply(years, data_analysis, sp = "bet", output = "NA")
+  ) %>% 
+    select(-h_value) %>% 
+    mutate( time_step = "present")
+  
+)
+
+# Duplicate historical values for both rcp...
+
+historical_output <- proportion_hist %>% 
+  filter(rcp == "historical") %>% 
+  mutate(rcp = "rcp45")
+
+proportion_hist_corrected <- proportion_hist %>% 
+  mutate(rcp = ifelse(rcp =="historical","rcp85",rcp)) %>% 
+  bind_rows(historical_output)
+
+# Future proportion
+# Set years for function
+years <- seq(2045,2055,1)
+
+suppressMessages( # remove annoying messages from function
+  
+    proportion_fut <- bind_rows(
+      lapply(years, data_analysis, sp = "skj", output = "NA"),
+      lapply(years, data_analysis, sp = "yft", output = "NA"),
+      lapply(years, data_analysis, sp = "bet", output = "NA")
+    )%>% 
+    select(-h_value) %>% 
+    mutate( time_step = "future")
 
 )
 
-    ### Save extracted dataset
-    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/time_series_all_esm.csv")
-    
-    write_csv(x = time_series_data,
-              file = data_name_save)
-    
+
+# Bind rows for plotting
+proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut)
 
 ```
 
+### Plot grid
 
-```{r}
+```{r grid_map, eval = T, echo = F}
 
-time_series_data %>% 
-  filter(zone == "CCZ") %>% 
-  ggplot() +
-  geom_line(
-    aes(x = year,
-        y = total_value,
-        color = rcp)
-  ) +
-  labs(y = "Total biomas (10^6mt)",
-       x = "Year") +
-  facet_wrap(~spp, scales = "free") +
-  scale_color_manual("RCP", values = c("black","green4","red")) +
-  my_ggtheme_p()
-
-# Save plot
-ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",
-       last_plot(),
-       height = 5,
-       width = 10
-        
-    )
-
-```
-
-
-
-# Nice plot
-
-## Get the data
-
-```{r get_data}
-
-source_file <- list.files("~/Data/ccz_tuna/results/tables/relative_change_all_esm/",full.names = T)
-
-all_spp <- bind_rows(
-  lapply(source_file, read.csv)
-)
-
-
-```
-
-
-## Plot grid
-
-```{r}
-
-all_spp %>% 
+proportion_data %>% 
+  # Average by ttime step
+  group_by(time_step,lon,lat,zone,rcp,spp) %>% 
+  summarise(mean_time = mean(total_value)) %>% 
+  spread(time_step,mean_time) %>% 
+  mutate(per_change = round((future-present)/present*100)) %>% 
   mutate(per_change = ifelse(per_change>100,100,per_change)) %>%
 ggplot() +
   geom_tile(
@@ -433,110 +361,112 @@ ggplot() +
   # ) +
   facet_grid(rcp~spp)
 
-ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp.png",
-       last_plot(),
-       height = 8,
-       width = 10
-        
-    )
+# ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp.png",
+#        last_plot(),
+#        height = 8,
+#        width = 10
+#         
+#     )
 
 ```
 
 
-## Aggregated version
+### Aggregated version
 
 ```{r aggregated_map, message = F}
 
-all_spp_sf <- st_as_sf(all_spp,
-                             coords = c("lon","lat"),
-                             crs =4326
-    )
-    
-    st_join(shp05,
-            all_spp_sf,
-            join = st_intersects) %>% 
-      gather("time","value",h_value:f_value) %>% 
-      group_by(CONTRACTOR,time,spp,rcp) %>% 
-      summarise(total_area = sum(value,na.rm = T)) %>% 
-      spread(time,total_area) %>% 
-      mutate(per_change = round((f_value-h_value)/h_value*100)) %>% 
-      ggplot() +
-      geom_sf(data = world_land,aes()) +
-      geom_sf(aes(fill = per_change)) +
-      coord_sf(xlim = c(-180,-110),
+
+st_as_sf(proportion_data,
+         coords = c("lon","lat"),
+         crs =4326
+         ) %>%
+  filter(zone == "CCZ") %>% 
+  # Add all biomass within the CCZ
+  group_by(year,time_step,zone,rcp,spp) %>% 
+  summarise(total_biomass = sum(total_value)) %>% 
+  # Average biomass within the CCZ at time period
+  group_by(time_step,zone,rcp,spp) %>% 
+  summarise(mean_time = mean(total_biomass)) %>% 
+  # Estimate per_change
+  spread(time_step,mean_time) %>% 
+  mutate(per_change = round((future-present)/present*100)) %>%
+  # Mab it!
+  st_join(shp05,
+          .,
+          join = st_intersects) %>% 
+  ggplot() +
+  geom_sf(data = world_land,aes()) +
+  geom_sf(aes(fill = per_change)) +
+  coord_sf(xlim = c(-180,-110),
            ylim = c(-35,45)
-           ) +
-      scale_fill_viridis_c("") +
-      my_ggtheme_m(map_type = "reg", leg_pos = "right") +
+  ) +
+  scale_fill_viridis_c("") +
+  my_ggtheme_m(map_type = "reg", leg_pos = "right") +
   theme(axis.text.x = element_blank(),
         strip.text.x = element_blank(),
         strip.text.y = element_blank()) +
-      facet_grid(rcp~spp)
+  facet_grid(rcp~spp)
     
     
-    ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/all_spp_agg.png",
-       last_plot(),
-       height = 8,
-       width = 10
-        
-    )
+    # ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/all_spp_agg.png",
+    #    last_plot(),
+    #    height = 8,
+    #    width = 10
+    #     
+    # )
     
 ```
 
 
-# Obsolete code
+## Time Series analysis
 
-## Rectangular extraction 
+```{r}
 
-This routine is working but outputs values for the whole rectangle with no coordinates
+# Set years for function
+years <- seq(2009,2010,1)
 
-```{r tuna_data_exploration}
+suppressMessages( # remove annoying messages from function
+  
+    time_series_data <- bind_rows(
+      lapply(years, data_analysis, sp = "skj"),
+      lapply(years, data_analysis, sp = "yft"),
+      lapply(years, data_analysis, sp = "bet")
+    ) 
 
-source("functions.R")
+)
 
-# sps<-c("skj","yft","bet")
-sps <- "YFT"
+    ### Save extracted dataset
+    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/time_series_all_esm.csv")
+    
+    write_csv(x = time_series_data,
+              file = data_name_save)
+    
 
-reg.WCPO<-c(120,210,-40,45)
-reg.EPO<-c(210,290,-40,45)	  
-regions<-matrix(c(reg.WCPO,reg.EPO),ncol=2)
-reg.names<-c("WCPO","EPO")
+```
 
-for (sp in sps){
-  
-  
-  life.stage<-"adult"; 
-  
-  # rcp<-c(8.5,4.5)
-  rcp <- "4.5"
-  # CM<-c("GFDL","IPSL","MIROC","MPI")
-  CM <- "GFDL"
-  SC<-c("REF","SO","SP","ST")
-  
-  # dir<-paste("/data/SEAPODYM/PROJECTS/SPC/SPC-2018/sim/",toupper(sp),"/",sep="")
-  
-  # JEPA 
-  dir <- paste("~/Data/ccz_tuna/")
-  file.h<-paste(dir,"HISTORICAL/output/output_F0/",sp,"_",life.stage,".dym",sep="")
-  dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
-  dir.out <- paste("~/Data/ccz_tuna/results/tables/")
-  file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
-  
-  
-  for (j in 1:length(CM))
-    for (i in 1:length(SC)){
-      file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
-                                               sp,"_",life.stage,".dym",sep=""))
-      file.cc$rcp8.5<-c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
-                                             sp,"_",life.stage,".dym",sep=""))
-    }
-  
-  # Extract data
-  #     for (n in 1:length(CM)){
-  #   write.ts.reg(file.cc$rcp4.5[n],t0=c(2011,1),tfin=c(2055,12),regions,paste("rcp45_",CM[n],sep=""))
-  #   write.ts.reg(file.cc$rcp8.5[n],t0=c(2011,1),tfin=c(2055,12),regions,paste("rcp85_",CM[n],sep=""))
-  #   } 
-} # Close species loop
 
+```{r}
+
+time_series_data %>% 
+  filter(zone == "CCZ") %>% 
+  ggplot() +
+  geom_line(
+    aes(x = year,
+        y = total_value,
+        color = rcp)
+  ) +
+  labs(y = "Total biomas (10^6mt)",
+       x = "Year") +
+  facet_wrap(~spp, scales = "free") +
+  scale_color_manual("RCP", values = c("black","green4","red")) +
+  my_ggtheme_p()
+
+# Save plot
+ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",
+       last_plot(),
+       height = 5,
+       width = 10
+        
+    )
 
 ```

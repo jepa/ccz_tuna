@@ -247,7 +247,7 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE){
 
 # Function to extract data as time series
 
-time_series_fun <- function(sp,year){
+data_analysis <- function(sp,year, output = "time_series"){
   # print(sp)
   dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
   dir.h <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/HISTORICAL")
@@ -270,8 +270,9 @@ time_series_fun <- function(sp,year){
         mutate(year = year,
                rcp = "historical",
                spp = sp) %>% 
-        group_by(spp,rcp,zone,year) %>% 
+        {if(output == "time_series") group_by(.,spp,rcp,zone,year) else group_by(., rowid,lon,lat,h_value,zone,year,rcp,spp)} %>% 
         summarise(total_value = sum(h_value, na.rm = T))
+        
       
       return(data_h)
       
@@ -295,7 +296,7 @@ time_series_fun <- function(sp,year){
     mutate(year = year,
            rcp = "rcp85",
            spp = sp) %>% 
-    group_by(spp,rcp,zone,year) %>% 
+    {if(output == "time_series") group_by(.,spp,rcp,zone,year) else group_by(., rowid,lon,lat,h_value,zone,year,rcp,spp)} %>% 
     summarise(total_value = sum(h_value, na.rm = T))
   
   
@@ -309,7 +310,7 @@ time_series_fun <- function(sp,year){
     mutate(year = year,
            rcp = "rcp45",
            spp = sp) %>% 
-    group_by(spp,rcp,zone,year) %>% 
+    {if(output == "time_series") group_by(.,spp,rcp,zone,year) else group_by(., rowid,lon,lat,h_value,zone,year,rcp,spp)} %>% 
     summarise(total_value = sum(h_value, na.rm = T))
   
   
@@ -320,6 +321,9 @@ time_series_fun <- function(sp,year){
   return(final_data)
   
 }
+
+
+
 
 # Test function
 # time_series_fun("yft",2010)

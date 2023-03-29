@@ -405,53 +405,6 @@ ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_rfmo.p
 ```
 
 
-### Aggregated version
-
-```{r aggregated_map, message = F}
-
-
-st_as_sf(proportion_data,
-         coords = c("lon","lat"),
-         crs =4326
-) %>%
-  filter(zone == "CCZ") %>% 
-  # Add all biomass within the CCZ
-  group_by(year,time_step,zone,rcp,spp) %>% 
-  summarise(total_biomass = sum(total_value)) %>% 
-  # Average biomass within the CCZ at time period
-  group_by(time_step,zone,rcp,spp) %>% 
-  summarise(mean_time = mean(total_biomass)) %>% 
-  # Estimate per_change
-  spread(time_step,mean_time) %>% 
-  mutate(per_change = round((future-present)/present*100)) %>%
-  # Mab it!
-  st_join(shp05,
-          .,
-          join = st_intersects) %>% 
-  ggplot() +
-  geom_sf(data = world_land,aes()) +
-  geom_sf(aes(fill = per_change)) +
-  coord_sf(xlim = c(-180,-110),
-           ylim = c(-35,45)
-  ) +
-  scale_fill_viridis_c("") +
-  my_ggtheme_m(map_type = "reg", leg_pos = "right") +
-  theme(axis.text.x = element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank()) +
-  facet_grid(rcp~spp)
-
-
-# ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/all_spp_agg.png",
-#    last_plot(),
-#    height = 8,
-#    width = 10
-#     
-# )
-
-```
-
-
 ## Time Series analysis
 
 ```{r}

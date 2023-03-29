@@ -491,10 +491,13 @@ write_csv(x = time_series_data,
 time_series_data %>% 
   bind_rows(hist_connection) %>% 
   mutate(spp = ifelse(spp =="bet", "Bigeye tuna",
-                      ifelse(spp == "skj","Skipjack tuna",
-                             "Yellowtail tuna")
-                      )
+                      ifelse(spp == "skj","Skipjack tuna","Yellowtail tuna")
+                      ),
+         rcp = ifelse(rcp == "rcp45", "RCP 4.5",
+                       ifelse(rcp == "rcp85","RCP 8.5", "Historic")
+         )
          ) %>% 
+  # View()
   filter(zone == "CCZ") %>% 
   ggplot() +
   geom_line(
@@ -508,8 +511,17 @@ time_series_data %>%
   scale_color_manual("RCP", values = c("black","blue","red")) +
   my_ggtheme_p() +
   theme(
-    text = element_text(family = "Arial")
-  )
+    strip.text.x = element_text(family = "Arial", size = 14),
+    axis.text.x   = element_text(family = "Arial", size = 12),
+    axis.text.y   = element_text(family = "Arial", size = 12),
+    axis.title.y = element_text(vjust = 2.5),
+    text = element_text(family = "Arial", size = 12),
+    legend.text = element_text(family = "Arial", size = 12),
+    legend.title = element_text(family = "Arial", size = 14)
+  ) +
+   guides(colour=guide_legend(title.position="top", 
+                                     title.hjust =0.5)
+          )
 
 # Save plot
 ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",

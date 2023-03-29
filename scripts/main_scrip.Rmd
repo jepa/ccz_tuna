@@ -247,9 +247,10 @@ source("../scripts/functions.R")
 # GLobal variables
 region <- c(120.5,289.5,-45,45)
 life.stage<-"adult";
-rcps <- c(4.5,8.5) # Keep both scenarios
+rcps <- c(4.5,8.5)
 CM<-c("GFDL","IPSL","MIROC","MPI")
 # CM <- "GFDL"
+# SC <- c("REF","SO","SP","ST")
 SC <- "REF"
 spp <- c("skj","yft","bet")
 
@@ -265,7 +266,7 @@ file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
 # Historical proportion
 # Set years for function
 years <- seq(2009,2018,1)
-
+length(years)
 suppressMessages( # remove annoying messages from function
   
   proportion_hist <- bind_rows(
@@ -278,8 +279,7 @@ suppressMessages( # remove annoying messages from function
   
 )
 
-# Duplicate historical values for both rcp...
-
+# Duplicate historical values for comparrison with both rcps...
 historical_output <- proportion_hist %>% 
   filter(rcp == "historical") %>% 
   mutate(rcp = "rcp45")
@@ -290,8 +290,8 @@ proportion_hist_corrected <- proportion_hist %>%
 
 # Future proportion
 # Set years for function
-years <- seq(2045,2055,1)
-
+years <- seq(2044,2053,1)
+length(years)
 suppressMessages( # remove annoying messages from function
   
   proportion_fut <- bind_rows(
@@ -306,7 +306,29 @@ suppressMessages( # remove annoying messages from function
 
 
 # Bind rows for plotting
-proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut)
+proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut) %>% 
+  filter(zone == "CCZ")
+
+
+# write_csv(proportion_data,
+#           "../results/tbl/proportion_change.csv")
+aggregated_data <- proportion_data %>% 
+  filter(zone == "CCZ") %>% 
+  # Add all biomass within the CCZ
+  group_by(year,time_step,zone,rcp,spp) %>% 
+  summarise(total_biomass = sum(total_value)) %>% 
+  # Average biomass within the CCZ at time period
+  group_by(time_step,zone,rcp,spp) %>% 
+  summarise(mean_time = mean(total_biomass)) %>% 
+  # Estimate per_change
+  spread(time_step,mean_time) %>% 
+  mutate(per_change = round((future-present)/present*100)) %>% 
+  mutate(
+    lat = 30,
+    lon = -160
+  )
+
+
 
 ```
 
@@ -315,13 +337,17 @@ proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut)
 ```{r grid_map, eval = T, echo = F}
 
 proportion_data %>% 
-  # Average by ttime step
+  # Average by time step
   group_by(time_step,lon,lat,zone,rcp,spp) %>% 
   summarise(mean_time = mean(total_value)) %>% 
   spread(time_step,mean_time) %>% 
   mutate(per_change = round((future-present)/present*100)) %>% 
-  mutate(per_change = ifelse(per_change>100,100,per_change)) %>%
+  # View()
+  # mutate(per_change = ifelse(per_change>100,100,per_change)) %>% cadetblue3
   ggplot() +
+  geom_sf(data = rfmo_map %>% filter(OBJECTID != 44), aes(), fill = "skyblue", color = "lightblue3") +
+  geom_sf(data = rfmo_map %>% filter(OBJECTID == 44), aes(), fill = "lightblue1", color = NA) +
+  # geom_sf(data = rfmo_map %>% filter(OBJECTID == 44), aes(), fill = NA, color = "grey70") + # Just RFMO line
   geom_tile(
     aes(
       x = lon,
@@ -330,42 +356,48 @@ proportion_data %>%
       color = per_change
     )
   ) +
-  geom_sf(data = shp05,aes(), color = "red", fill ="NA") +
-  geom_sf(data = shp1, color = "grey", fill ="NA") +
+  geom_label(data = aggregated_data,
+            aes(
+              x = -117,#use -158 for top left of plot or 117 for top right of CCZ
+              y = 22, #use 33 for top left of plot or 22 for top right of CCZ
+              label = paste0(as.character(per_change),"%"),
+              color = per_change
+            ),
+            size = 4
+            ) +
   geom_sf(data = shp2, color = "black", fill ="NA") +
   geom_sf(data = world_land,aes()) +
-  coord_sf(xlim = c(-180,-110),
-           ylim = c(-35,45)
+  coord_sf(xlim = c(-160,-115),
+           ylim = c(0,30)
   ) +
   labs(x = "",
        y = "") + 
-  # scale_fill_viridis_c("") +
-  # scale_color_viridis_c("") +
-  scale_fill_gradient2("") +
-  scale_color_gradient2("") +
+  scale_y_continuous(breaks = c(0,15,30)) +
+  scale_x_continuous(breaks = c(-160,-140,-120)) +
+  scale_fill_viridis_c("") +
+  scale_color_viridis_c("") +
   my_ggtheme_m(map_type = "reg", leg_pos = "right") +
-  theme(axis.text.x = element_blank(),
+  theme(
+    # axis.text.x = element_blank(),
+    # axis.text.y = element_blank(),
         strip.text.x = element_blank(),
-        strip.text.y = element_blank()) +
-  # theme(
-  #   panel.background = element_blank(), 
-  #   strip.background = element_blank(), 
-  #   panel.border = element_blank(), 
-  #   panel.grid.minor = element_blank(),
-  #   panel.grid.major = element_blank(),
-  #   axis.line = element_line(color = "black"), 
-  #   axis.ticks = element_blank(),
-  #   axis.text.x = element_text(size = 10, face = "plain", color = "black"), 
-  #   axis.text.y = element_text(size = 10, color = "black")
-  # ) +
-facet_grid(rcp~spp)
+        strip.text.y = element_blank(),
+        axis.text.x   = element_text(family = "Arial", size = 12),
+        axis.text.y   = element_text(family = "Arial", size = 12),
+        text = element_text(family = "Arial"),
+        legend.text = element_text(family = "Arial", size = 12),
+        ) +
+  facet_grid(rcp~spp)
+  
+  
 
-# ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp.png",
-#        last_plot(),
-#        height = 8,
-#        width = 10
-#         
-#     )
+ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_rfmo.png",
+# ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_.png",
+       last_plot(),
+       height = 5,
+       width = 10
+
+    )
 
 ```
 
@@ -422,7 +454,7 @@ st_as_sf(proportion_data,
 ```{r}
 
 # Set years for function
-years <- seq(1980,2050,1)
+years <- seq(1980,2055,1)
 
 suppressMessages( # remove annoying messages from function
   
@@ -434,8 +466,15 @@ suppressMessages( # remove annoying messages from function
   
 )
 
+# Fix connection
+
+hist_connection <- time_series_data %>% 
+  filter(year == 2011) %>% 
+  mutate(rcp= "historical")
+
+
 ### Save extracted dataset
-data_name_save <- paste0("~/Data/ccz_tuna/results/tables/time_series_all_esm.csv")
+data_name_save <- paste0("../results/tbl/time_series_all_esm.csv")
 
 write_csv(x = time_series_data,
           file = data_name_save)
@@ -447,6 +486,12 @@ write_csv(x = time_series_data,
 ```{r}
 
 time_series_data %>% 
+  bind_rows(hist_connection) %>% 
+  mutate(spp = ifelse(spp =="bet", "Bigeye tuna",
+                      ifelse(spp == "skj","Skipjack tuna",
+                             "Yellowtail tuna")
+                      )
+         ) %>% 
   filter(zone == "CCZ") %>% 
   ggplot() +
   geom_line(
@@ -454,11 +499,14 @@ time_series_data %>%
         y = total_value,
         color = rcp)
   ) +
-  labs(y = "Total biomas (10^6mt)",
+  labs(y = "Total biomass (10^6mt)",
        x = "Year") +
   facet_wrap(~spp, scales = "free") +
-  scale_color_manual("RCP", values = c("black","green4","red")) +
-  my_ggtheme_p()
+  scale_color_manual("RCP", values = c("black","blue","red")) +
+  my_ggtheme_p() +
+  theme(
+    text = element_text(family = "Arial")
+  )
 
 # Save plot
 ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",

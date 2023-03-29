@@ -72,9 +72,9 @@ shp_name <- "cfc"
 shp05 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_0.5.shp")) %>% 
   mutate(Buffer = 50)# 50 kmm buffer
 shp1 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_1.shp")) %>% 
-    mutate(Buffer = 100) # 100 kmm buffer
+  mutate(Buffer = 100) # 100 kmm buffer
 shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) %>% 
-    mutate(Buffer = 200) # 200 kmm buffer
+  mutate(Buffer = 200) # 200 kmm buffer
 
 world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
   st_transform(crs = 4326)
@@ -151,7 +151,7 @@ world_crop <- gDifference(world_land, box_cut) %>%
   st_shift_longitude() %>% # Shift it
   st_simplify(preserveTopology = TRUE, dTolerance = 0.1)
 
-  
+
 rfmo_map %>%
   st_simplify(preserveTopology = TRUE, dTolerance = 1) %>%
   st_shift_longitude() %>%
@@ -165,7 +165,7 @@ rfmo_map %>%
   geom_sf(data = shp05 %>% st_shift_longitude(),aes(), color = "red", fill ="NA") +
   geom_sf(data = shp1 %>% st_shift_longitude(), color = "grey", fill ="NA") +
   geom_sf(data = shp2 %>% st_shift_longitude(), color = "black", fill ="NA")
-  
+
 
 
 
@@ -247,10 +247,9 @@ source("../scripts/functions.R")
 # GLobal variables
 region <- c(120.5,289.5,-45,45)
 life.stage<-"adult";
-rcps <- c(4.5,8.5)
+rcps <- c(4.5,8.5) # Keep both scenarios
 CM<-c("GFDL","IPSL","MIROC","MPI")
 # CM <- "GFDL"
-# SC <- c("REF","SO","SP","ST")
 SC <- "REF"
 spp <- c("skj","yft","bet")
 
@@ -295,14 +294,14 @@ years <- seq(2045,2055,1)
 
 suppressMessages( # remove annoying messages from function
   
-    proportion_fut <- bind_rows(
-      lapply(years, data_analysis, sp = "skj", output = "NA"),
-      lapply(years, data_analysis, sp = "yft", output = "NA"),
-      lapply(years, data_analysis, sp = "bet", output = "NA")
-    )%>% 
+  proportion_fut <- bind_rows(
+    lapply(years, data_analysis, sp = "skj", output = "NA"),
+    lapply(years, data_analysis, sp = "yft", output = "NA"),
+    lapply(years, data_analysis, sp = "bet", output = "NA")
+  )%>% 
     select(-h_value) %>% 
     mutate( time_step = "future")
-
+  
 )
 
 
@@ -322,7 +321,7 @@ proportion_data %>%
   spread(time_step,mean_time) %>% 
   mutate(per_change = round((future-present)/present*100)) %>% 
   mutate(per_change = ifelse(per_change>100,100,per_change)) %>%
-ggplot() +
+  ggplot() +
   geom_tile(
     aes(
       x = lon,
@@ -342,8 +341,8 @@ ggplot() +
        y = "") + 
   # scale_fill_viridis_c("") +
   # scale_color_viridis_c("") +
-    scale_fill_gradient2("") +
-    scale_color_gradient2("") +
+  scale_fill_gradient2("") +
+  scale_color_gradient2("") +
   my_ggtheme_m(map_type = "reg", leg_pos = "right") +
   theme(axis.text.x = element_blank(),
         strip.text.x = element_blank(),
@@ -359,7 +358,7 @@ ggplot() +
   #   axis.text.x = element_text(size = 10, face = "plain", color = "black"), 
   #   axis.text.y = element_text(size = 10, color = "black")
   # ) +
-  facet_grid(rcp~spp)
+facet_grid(rcp~spp)
 
 # ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp.png",
 #        last_plot(),
@@ -379,7 +378,7 @@ ggplot() +
 st_as_sf(proportion_data,
          coords = c("lon","lat"),
          crs =4326
-         ) %>%
+) %>%
   filter(zone == "CCZ") %>% 
   # Add all biomass within the CCZ
   group_by(year,time_step,zone,rcp,spp) %>% 
@@ -406,15 +405,15 @@ st_as_sf(proportion_data,
         strip.text.x = element_blank(),
         strip.text.y = element_blank()) +
   facet_grid(rcp~spp)
-    
-    
-    # ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/all_spp_agg.png",
-    #    last_plot(),
-    #    height = 8,
-    #    width = 10
-    #     
-    # )
-    
+
+
+# ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/all_spp_agg.png",
+#    last_plot(),
+#    height = 8,
+#    width = 10
+#     
+# )
+
 ```
 
 
@@ -427,20 +426,20 @@ years <- seq(1980,2050,1)
 
 suppressMessages( # remove annoying messages from function
   
-    time_series_data <- bind_rows(
-      lapply(years, data_analysis, sp = "skj"),
-      lapply(years, data_analysis, sp = "yft"),
-      lapply(years, data_analysis, sp = "bet")
-    ) 
-
+  time_series_data <- bind_rows(
+    lapply(years, data_analysis, sp = "skj"),
+    lapply(years, data_analysis, sp = "yft"),
+    lapply(years, data_analysis, sp = "bet")
+  ) 
+  
 )
 
-    ### Save extracted dataset
-    data_name_save <- paste0("~/Data/ccz_tuna/results/tables/time_series_all_esm.csv")
-    
-    write_csv(x = time_series_data,
-              file = data_name_save)
-    
+### Save extracted dataset
+data_name_save <- paste0("~/Data/ccz_tuna/results/tables/time_series_all_esm.csv")
+
+write_csv(x = time_series_data,
+          file = data_name_save)
+
 
 ```
 
@@ -466,8 +465,8 @@ ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",
        last_plot(),
        height = 5,
        width = 10
-        
-    )
+       
+)
 
 ```
 
@@ -482,9 +481,9 @@ all_spp <- bind_rows(
 )
 
 all_spp_sf <- st_as_sf(all_spp,
-                             coords = c("lon","lat"),
-                             crs =4326
-    )
+                       coords = c("lon","lat"),
+                       crs =4326
+)
 
 ```
 
@@ -493,35 +492,35 @@ all_spp_sf <- st_as_sf(all_spp,
 
 
 st_join(shp05,
-            all_spp_sf,
-            join = st_intersects) %>% 
+        all_spp_sf,
+        join = st_intersects) %>% 
   select(-zone) %>% 
-      gather("time","value",h_value:f_value) %>% 
-      group_by(CONTRACTOR,time,spp,rcp) %>% 
-      summarise(total_area = sum(value,na.rm = T)) %>% 
-      spread(time,total_area) %>% 
-      mutate(per_change = round((f_value-h_value)/h_value*100)) %>%
+  gather("time","value",h_value:f_value) %>% 
+  group_by(CONTRACTOR,time,spp,rcp) %>% 
+  summarise(total_area = sum(value,na.rm = T)) %>% 
+  spread(time,total_area) %>% 
+  mutate(per_change = round((f_value-h_value)/h_value*100)) %>%
   as.data.frame() %>% 
   select(spp,rcp,per_change) %>% 
   write_csv(.,"average_change.csv")
-  
-  
-  
-  #     mutate(per_change = round((f_value-h_value)/h_value*100)) %>% 
-  #     ggplot() +
-  #     geom_sf(data = world_land,aes()) +
-  #     geom_sf(aes(fill = per_change)) +
-  #     coord_sf(xlim = c(-180,-110),
-  #          ylim = c(-35,45)
-  #          ) +
-  # # scale_fill_viridis_c("") +
-  # scale_fill_distiller(palette = "Blues") +
-  # # scale_fill_continuous() +
-  #     my_ggtheme_m(map_type = "reg", leg_pos = "right") +
-  # theme(axis.text.x = element_blank(),
-  #       strip.text.x = element_blank(),
-  #       strip.text.y = element_blank()) +
-      facet_grid(rcp~spp)
+
+
+
+#     mutate(per_change = round((f_value-h_value)/h_value*100)) %>% 
+#     ggplot() +
+#     geom_sf(data = world_land,aes()) +
+#     geom_sf(aes(fill = per_change)) +
+#     coord_sf(xlim = c(-180,-110),
+#          ylim = c(-35,45)
+#          ) +
+# # scale_fill_viridis_c("") +
+# scale_fill_distiller(palette = "Blues") +
+# # scale_fill_continuous() +
+#     my_ggtheme_m(map_type = "reg", leg_pos = "right") +
+# theme(axis.text.x = element_blank(),
+#       strip.text.x = element_blank(),
+#       strip.text.y = element_blank()) +
+facet_grid(rcp~spp)
 
 
 
@@ -533,7 +532,7 @@ st_join(shp05,
 all_spp %>% 
   filter(zone == "CCZ") %>% 
   mutate(per_change = ifelse(per_change>100,100,per_change)) %>%
-ggplot() +
+  ggplot() +
   geom_tile(
     aes(
       x = lon,
@@ -553,8 +552,8 @@ ggplot() +
        y = "") + 
   scale_fill_viridis_c("") +
   scale_color_viridis_c("") +
-    # scale_fill_gradient2("") +
-    # scale_color_gradient2("") +
+  # scale_fill_gradient2("") +
+  # scale_color_gradient2("") +
   my_ggtheme_m(map_type = "reg", leg_pos = "right") +
   theme(axis.text.x = element_blank(),
         strip.text.x = element_blank(),
@@ -570,13 +569,13 @@ ggplot() +
   #   axis.text.x = element_text(size = 10, face = "plain", color = "black"), 
   #   axis.text.y = element_text(size = 10, color = "black")
   # ) +
-  facet_grid(rcp~spp)
+facet_grid(rcp~spp)
 
 ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_ppt.png",
        last_plot(),
        height = 8,
        width = 10
-        
-    )
+       
+)
 ```
 

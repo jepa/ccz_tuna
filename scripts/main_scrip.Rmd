@@ -261,7 +261,7 @@ file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
 
 ## Proportion change
 
-```{r}
+```{r get_proportion_cahnge, eval = F, echo = T}
 
 # Historical proportion
 # Set years for function
@@ -309,9 +309,11 @@ suppressMessages( # remove annoying messages from function
 proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut) %>% 
   filter(zone == "CCZ")
 
+# Save data for future computing
+write_csv(proportion_data,
+          "../results/tbl/proportion_change.csv")
 
-# write_csv(proportion_data,
-#           "../results/tbl/proportion_change.csv")
+# Estimate overall aggregation
 aggregated_data <- proportion_data %>% 
   filter(zone == "CCZ") %>% 
   # Add all biomass within the CCZ
@@ -336,7 +338,8 @@ aggregated_data <- proportion_data %>%
 
 ```{r grid_map, eval = T, echo = F}
 
-proportion_data %>% 
+read_csv("../results/tbl/proportion_change.csv") %>% 
+# proportion_data %>% 
   # Average by time step
   group_by(time_step,lon,lat,zone,rcp,spp) %>% 
   summarise(mean_time = mean(total_value)) %>% 

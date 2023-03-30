@@ -446,10 +446,19 @@ write_csv(x = time_series_data,
 
 ```{r}
 
+
+time_series_data <- read_csv("../results/tbl/time_series_all_esm.csv")
+  
+
 time_series_data %>% 
+  filter(year == 2011) %>% 
+  mutate(rcp= "historical")
+
+  
+time_series_data %>%
   bind_rows(hist_connection) %>% 
   mutate(spp = ifelse(spp =="bet", "Bigeye tuna",
-                      ifelse(spp == "skj","Skipjack tuna","Yellowtail tuna")
+                      ifelse(spp == "skj","Skipjack tuna","Yellowfin tuna")
   ),
   rcp = ifelse(rcp == "rcp45", "RCP 4.5",
                ifelse(rcp == "rcp85","RCP 8.5", "Historic")

@@ -197,15 +197,6 @@ ggplot() +
 
 ## Percentage change maps
 
-To be discussed there is the option of using sensitivity analysis runs or just reference runs... Do they report just the reference model?
-
-REF = mean of four climate-derived (IPSL, GFDL, MIROC and MPI)
-NEMO-PISCES ocean simulations; ST = genetic adaptation to increasing temperature; SP = 10%
-increase of primary production in tropical region defined by 27°C isotherm; SO = no change in
-dissolved oxygen content over forecast period, and PH = negative impact of ocean acidification of larval
-survival (for yellowfin tuna only).
-
-
 ## Create Data grid
 
 This sub step is to easier identify the CCZ zone, no need to run

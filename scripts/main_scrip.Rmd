@@ -274,9 +274,9 @@ file.cc<-list(rcp8.5=NULL,rcp4.5=NULL)
 suppressMessages( # remove annoying messages from function
   
   proportion_hist <- bind_rows(
-    lapply(h_years, data_analysis, sp = "skj", output = "NA"),
-    lapply(h_years, data_analysis, sp = "yft", output = "NA"),
-    lapply(h_years, data_analysis, sp = "bet", output = "NA")
+    lapply(h_years, data_analysis, sp = "skj"),
+    lapply(h_years, data_analysis, sp = "yft"),
+    lapply(h_years, data_analysis, sp = "bet")
   ) %>% 
     select(-h_value) %>% 
     mutate( time_step = "present")
@@ -298,9 +298,9 @@ proportion_hist_corrected <- proportion_hist %>%
 suppressMessages( # remove annoying messages from function
   
   proportion_fut <- bind_rows(
-    lapply(f_years, data_analysis, sp = "skj", output = "NA"),
-    lapply(f_years, data_analysis, sp = "yft", output = "NA"),
-    lapply(f_years, data_analysis, sp = "bet", output = "NA")
+    lapply(f_years, data_analysis, sp = "skj"),
+    lapply(f_years, data_analysis, sp = "yft"),
+    lapply(f_years, data_analysis, sp = "bet")
   )%>% 
     select(-h_value) %>% 
     mutate( time_step = "future")

@@ -244,13 +244,14 @@ write_csv(ccz_index,"ccz_index.csv")
 ```{r}
 
 source("../scripts/functions.R")
+
+ccz_index <- read_csv("~/Data/ccz_tuna/spatial/ccz_index.csv",show_col_types = FALSE)
+
 # GLobal variables
 region <- c(120.5,289.5,-45,45)
 life.stage<-"adult";
 rcps <- c(4.5,8.5)
 CM<-c("GFDL","IPSL","MIROC","MPI")
-# CM <- "GFDL"
-# SC <- c("REF","SO","SP","ST")
 SC <- "REF"
 spp <- c("skj","yft","bet")
 
@@ -297,9 +298,9 @@ proportion_hist_corrected <- proportion_hist %>%
 suppressMessages( # remove annoying messages from function
   
   proportion_fut <- bind_rows(
-    lapply(years, data_analysis, sp = "skj", output = "NA"),
-    lapply(years, data_analysis, sp = "yft", output = "NA"),
-    lapply(years, data_analysis, sp = "bet", output = "NA")
+    lapply(f_years, data_analysis, sp = "skj", output = "NA"),
+    lapply(f_years, data_analysis, sp = "yft", output = "NA"),
+    lapply(f_years, data_analysis, sp = "bet", output = "NA")
   )%>% 
     select(-h_value) %>% 
     mutate( time_step = "future")
@@ -308,21 +309,19 @@ suppressMessages( # remove annoying messages from function
 
 
 # Bind rows for plotting
-proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut) %>% 
-  filter(zone == "CCZ")
+proportion_data <- bind_rows(proportion_hist_corrected,proportion_fut)
 
 # Save data for future computing
-write_csv(proportion_data,
-          "../results/tbl/proportion_change.csv")
+# write_csv(proportion_data,
+          # "../results/tbl/proportion_change.csv")
 
 # Estimate overall aggregation
 aggregated_data <- proportion_data %>% 
-  filter(zone == "CCZ") %>% 
   # Add all biomass within the CCZ
-  group_by(year,time_step,zone,rcp,spp) %>% 
+  group_by(year,time_step,rcp,spp) %>% 
   summarise(total_biomass = sum(total_value)) %>% 
   # Average biomass within the CCZ at time period
-  group_by(time_step,zone,rcp,spp) %>% 
+  group_by(time_step,rcp,spp) %>% 
   summarise(mean_time = mean(total_biomass)) %>% 
   # Estimate per_change
   spread(time_step,mean_time) %>% 
@@ -338,12 +337,46 @@ aggregated_data <- proportion_data %>%
 
 #### Plot grid
 
+#### Shapefiles
+
+```{r}
+
+# Get RFMO map
+rfmo_map <- my_sf("RFMO") %>% 
+  filter(RFMO_nm_s %in% c("IATTC","WCPFC")) %>% #44 and
+  st_simplify(preserveTopology = TRUE, dTolerance = 0.1)
+
+# Get shapefiles from Jesse
+shp_path <- "/Users/juliano/Data/ccz_tuna/spatial/"
+shp_name <- "pmn"
+
+# crop figure to CCZ
+my_crop <- function(x){
+  x <- st_crop(x,xmax = -100,
+               xmin = -180,
+               ymax = 35,
+               ymin = -35)
+  return(x)
+}
+
+# Load shapefile
+shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) %>% # 200 kmm buffer
+  my_crop(.) %>% 
+  mutate(zone = "ccv")
+
+# Load land shapefile
+world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
+  st_transform(crs = 4326)
+```
+
+
+
 ```{r grid_map, eval = T, echo = F}
 
-read_csv("../results/tbl/proportion_change.csv") %>% 
-# proportion_data %>% 
+# read_csv("../results/tbl/proportion_change.csv") %>% 
+proportion_data %>%
   # Average by time step
-  group_by(time_step,lon,lat,zone,rcp,spp) %>% 
+  group_by(time_step,lon,lat,rcp,spp) %>% 
   summarise(mean_time = mean(total_value)) %>% 
   spread(time_step,mean_time) %>% 
   mutate(per_change = round((future-present)/present*100)) %>% 
@@ -407,96 +440,6 @@ ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_rfmo.p
        width = 10
 
     )
-
-```
-
-
-### Time Series analysis
-
-```{r}
-
-# Get data
-suppressMessages( # remove annoying messages from function
-  
-  time_series_data <- bind_rows(
-    lapply(years, data_analysis, sp = "skj"),
-    lapply(years, data_analysis, sp = "yft"),
-    lapply(years, data_analysis, sp = "bet")
-  ) 
-  
-)
-
-# Fix connection
-
-hist_connection <- time_series_data %>% 
-  filter(year == 2011) %>% 
-  mutate(rcp= "historical")
-
-
-### Save extracted dataset
-data_name_save <- paste0("../results/tbl/time_series_all_esm.csv")
-
-write_csv(x = time_series_data,
-          file = data_name_save)
-
-
-```
-
-#### Plot time line
-
-```{r}
-
-
-time_series_data <- read_csv("../results/tbl/time_series_all_esm.csv")
-  
-
-time_series_data %>% 
-  filter(year == 2011) %>% 
-  mutate(rcp= "historical")
-
-  
-time_series_data %>%
-  bind_rows(hist_connection) %>% 
-  mutate(spp = ifelse(spp =="bet", "Bigeye tuna",
-                      ifelse(spp == "skj","Skipjack tuna","Yellowfin tuna")
-  ),
-  rcp = ifelse(rcp == "rcp45", "RCP 4.5",
-               ifelse(rcp == "rcp85","RCP 8.5", "Historic")
-  )
-  ) %>% 
-  # View()
-  filter(zone == "CCZ") %>% 
-  ggplot() +
-  geom_line(
-    aes(x = year,
-        y = total_value,
-        color = rcp)
-  ) +
-  labs(y = "Total biomass (10^6mt)",
-       x = "Year") +
-  facet_wrap(~spp, scales = "free") +
-  scale_color_manual("RCP", values = c("black","blue","red")) +
-  my_ggtheme_p() +
-  theme(
-    strip.text.x = element_text(family = "Arial", size = 14),
-    axis.text.x   = element_text(family = "Arial", size = 12),
-    axis.text.y   = element_text(family = "Arial", size = 12),
-    axis.title.y = element_text(vjust = 2.5),
-    text = element_text(family = "Arial", size = 12),
-    legend.text = element_text(family = "Arial", size = 12),
-    legend.title = element_text(family = "Arial", size = 14)
-  ) +
-  guides(colour=guide_legend(title.position="top", 
-                             title.hjust =0.5)
-  )
-
-# Save plot
-ggsave("~/Data/ccz_tuna/results/figs/time_series/all_spp_esms.png",
-       last_plot(),
-       height = 5,
-       width = 10
-       
-)
 
 ```
 

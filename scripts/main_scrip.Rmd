@@ -137,16 +137,16 @@ rfmo_map <- my_sf("RFMO") %>%
   st_simplify(preserveTopology = TRUE, dTolerance = 0.1) %>% 
   st_shift_longitude() #Shitfs longitudes ti center the pacific
 
-world_eez <- my_sf("SAU",simple = 1000)
+world_eez <- my_sf("SAU",simple = 1000,system = "Valentina")
 
 world_land <- world_land <- ne_countries(scale = 'medium', returnclass = c("sp"))
 
 # Crop world land to match pacific centered map
 # https://rpubs.com/valentin/pacific-centered-map-voronoi-tessellation
-box_cut <- bbox2SP(n = 90, s = -90, w = -70, e = 90, proj4string = world_land@proj4string)
+box_cut <- rgeos::bbox2SP(n = 90, s = -90, w = -70, e = 90, proj4string = world_land@proj4string)
 
 # Crop it
-world_crop <- gDifference(world_land, box_cut) %>% 
+world_crop <- rgeos::gDifference(world_land, box_cut) %>% 
   st_as_sf() %>% # change from sp to sf object/class
   st_shift_longitude() %>% # Shift it
   st_simplify(preserveTopology = TRUE, dTolerance = 0.1)
@@ -157,13 +157,16 @@ rfmo_map %>%
   st_shift_longitude() %>%
   ggplot() +
   # geom_sf(data = world_crop, aes())
-  geom_sf(aes(fill = RFMO_nm_s, color = RFMO_nm_s)) +
+  # geom_sf(aes(fill = RFMO_nm_s, color = RFMO_nm_s)) +
+  geom_sf(data = rfmo_map %>% filter(OBJECTID != 44) %>% st_shift_longitude(), aes(), fill = "skyblue", color = "lightblue3") +
+  geom_sf(data = rfmo_map %>% filter(OBJECTID == 44) %>% st_shift_longitude(), aes(), fill = "lightblue1", color = NA) +
   geom_sf(data = world_crop, aes(), fill = "beige",color ="black") +
   theme_bw() +
   scale_fill_brewer("RFMO") +
-  scale_color_brewer("RFMO") +
-  geom_sf(data = shp05 %>% st_shift_longitude(),aes(), color = "red", fill ="NA") +
-  geom_sf(data = shp1 %>% st_shift_longitude(), color = "grey", fill ="NA") +
+  # scale_color_brewer("RFMO") +
+  geom_sf(data = shp0  %>% st_shift_longitude(), aes(color = Contractor, fill = Contractor), fill ="NA", size = 0.3) + # color coded version
+  # geom_sf(data = shp05 %>% st_shift_longitude(),aes(), color = "red", fill ="NA") +
+  # geom_sf(data = shp1 %>% st_shift_longitude(), color = "grey", fill ="NA") +
   geom_sf(data = shp2 %>% st_shift_longitude(), color = "black", fill ="NA")
 
 
@@ -333,7 +336,7 @@ aggregated_data <- proportion_data %>%
 ```{r}
 
 # Get RFMO map
-rfmo_map <- my_sf("RFMO") %>% 
+rfmo_map <- my_sf("RFMO", system = "Valentina") %>% 
   filter(RFMO_nm_s %in% c("IATTC","WCPFC")) %>% #44 and
   st_simplify(preserveTopology = TRUE, dTolerance = 0.1)
 
@@ -355,6 +358,11 @@ shp2 <- st_read(paste0(shp_path,shp_name,"/",shp_name,"_2.shp")) %>% # 200 kmm b
   my_crop(.) %>% 
   mutate(zone = "ccv")
 
+# PMN exploration licensed area shapefile information (obtained from the ISA website)
+shp0 <- st_read(paste0(shp_path,shp_name,"/","01_pmn_exploration_areas.shp")) %>% 
+  my_crop(.) %>% 
+  mutate(zone = "ccv")
+
 # Load land shapefile
 world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>% 
   st_transform(crs = 4326)
@@ -364,7 +372,24 @@ world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>%
 
 ```{r grid_map, eval = T, echo = F}
 
-# read_csv("../results/tbl/proportion_change.csv") %>% 
+# Estimate overall aggregation
+aggregated_data <- read_csv("../results/tbl/proportion_change.csv") %>% 
+  # Add all biomass within the CCZ
+  group_by(year,time_step,rcp,spp) %>% 
+  summarise(total_biomass = sum(total_value)) %>% 
+  # Average biomass within the CCZ at time period
+  group_by(time_step,rcp,spp) %>% 
+  summarise(mean_time = mean(total_biomass)) %>% 
+  # Estimate per_change
+  spread(time_step,mean_time) %>% 
+  mutate(per_change = round((future-present)/present*100)) %>% 
+  mutate(
+    lat = 30,
+    lon = -160
+  )
+
+
+# read_csv("../results/tbl/proportion_change.csv") %>%
 proportion_data %>%
   # Average by time step
   group_by(time_step,lon,lat,rcp,spp) %>% 
@@ -396,7 +421,9 @@ proportion_data %>%
             size = 4
             ) +
   # Add CCZ shapefile
-  geom_sf(data = shp2, color = "black", fill ="NA") +
+  geom_sf(data = shp2, aes(), color = "black", fill ="NA") +
+  geom_sf(data = shp0, aes(), color = "grey", fill ="NA", size = 0.3) + # grey version
+  # geom_sf(data = shp0, aes(color = Contractor), fill ="NA", size = 0.3) + # color coded version
   # Add world land
   geom_sf(data = world_land,aes()) +
   # Cewnter map
@@ -419,7 +446,7 @@ proportion_data %>%
         axis.text.x   = element_text(family = "Arial", size = 12),
         axis.text.y   = element_text(family = "Arial", size = 12),
         text = element_text(family = "Arial"),
-        legend.text = element_text(family = "Arial", size = 12),
+        legend.text = element_text(family = "Arial", size = 12)
         ) +
   facet_grid(rcp~spp)
   

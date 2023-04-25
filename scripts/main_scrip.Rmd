@@ -489,7 +489,15 @@ sau_data %>%
   # summarise_if(is.numeric,sum)
 
 # Tuna participation from Erauskin-Extramiana et al., 2019
-(3600000/(sum(3015.0, 720.0, 1126.0, 14.0, 587.0)*1000))*100
+iattc <- (241+98+348)*1000
+wcpfc <- c(690+130+2045)*1000
+
+(wcpfc + iattc)/1000000 #million
+
+# Participation
+round((wcpfc + iattc)/(sum(3015.0, 720.0, 1126.0, 14.0, 587.0)*1000)*100)
+
+
 
 ```
 

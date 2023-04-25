@@ -222,7 +222,7 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE,output = "tim
       var <- var + sum1d(vars)
     }
   }
-
+  
   # Divide by all ESMS
   var <- var/length(files) #value in ton
   
@@ -246,7 +246,8 @@ data_extraction <- function(files,time_0,time_n,region, ccz = TRUE,output = "tim
 }
 
 
-# Function to extract data as time series
+# Function to extract data as time series adapted from scripts
+# provided by Bell wt al
 data_analysis <- function(sp,year){
   # print(sp)
   dir.cc <- paste0("/Users/juliano/Data/ccz_tuna/outputs/",sp,"/RCP")
@@ -272,7 +273,7 @@ data_analysis <- function(sp,year){
                spp = sp) %>% 
         group_by(rowid,lon,lat,h_value,year,rcp,spp) %>% 
         summarise(total_value = sum(h_value, na.rm = T))
-        
+      
       
       return(data_h)
       
@@ -281,7 +282,7 @@ data_analysis <- function(sp,year){
         file.cc$rcp4.5 <- c(file.cc$rcp4.5,paste(dir.cc,"4.5/",CM[j],"/",SC[i],"/output/output_F0/",
                                                  sp,"_",life.stage,".dym",sep=""))
         file.cc$rcp8.5 <- c(file.cc$rcp8.5,paste(dir.cc,"8.5/",CM[j],"/",SC[i],"/output/output_F0/",
-                                               sp,"_",life.stage,".dym",sep=""))
+                                                 sp,"_",life.stage,".dym",sep=""))
       }
     }
   

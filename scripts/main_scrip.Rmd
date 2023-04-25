@@ -460,8 +460,9 @@ ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_rfmo.p
     )
 
 ```
-# SAU numbers
+# Overall tuna numbers
 
+These numbers are from the Sea Around Us website for tuna catches in the high seas by Mexico, Venezuela, Nicaragua, Panama, and Colombia available from www.seaaroundus.com and Erauskin-Extramiana et al., 2019.
 
 ```{r}
 sau_data <- read.csv("~/Data/ccz_tuna/sau_data.csv")
@@ -481,47 +482,19 @@ sau_data %>%
   # View()
   summarise_if(is.numeric,mean) %>% 
   mutate(
-    tonnes_million = round(tonnes/1000),
-    landed_value_thousand = round(landed_value/1000000)
+    tonnes_thousands = round(tonnes/1000),
+    landed_value_million = round(landed_value/1000000)
   )
   # Totals
   # summarise_if(is.numeric,sum)
 
+# Tuna participation from Erauskin-Extramiana et al., 2019
+(3600000/(sum(3015.0, 720.0, 1126.0, 14.0, 587.0)*1000))*100
 
 ```
 
 
-# Jesse's numbers
-
-```{r}
-
-# From figure 2
-
-# Note that average for 4.5 and 8.5 are the same
-per_45 <- mean(c(10,31,23)) # 21.3
-per_85 <- mean(c(11,30,23)) # 21.3
 
 
-## CCZ + 200KM
-# RFMO data 
-catch_r <- 3.5*10000
-round(catch_r*(per_45/100)/1000) # thousand 7
-
-# Watson data 
-catch_w <- 7.8*10000
-
-round(catch_w*(per_45/100)/1000) # thousand 17
-
-## CCZ 
-# RFMO data 
-catch_r <- 1.8*10000
-round(catch_r*(per_45/100)/1000) # thousand 4
-# Watson data 
-catch_w <- 4*10000
-round(catch_w*(per_45/100)/1000) # thousand 9
-
-
-# Tuna participation from maite's paper
-(3600000/(sum(3015.0, 720.0, 1126.0, 14.0, 587.0)*1000))*100
 
 ```

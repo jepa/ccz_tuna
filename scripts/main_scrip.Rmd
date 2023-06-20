@@ -92,8 +92,8 @@ world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>%
 
 ```{r pms_maps, eval = T, echo = T, message = FALSE}
 
-shp_path <- "/Users/juliano/Data/ccz_tuna/spatial/"
-shp_name <- "pmn"
+shp_path <- "/Volumes/Enterprise/Data/ccz_tuna/spatial/"
+shp_name <- "PMN"
 
 # crop figure to CCZ
 my_crop <- function(x){
@@ -132,12 +132,12 @@ world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>%
 ```{r}
 
 # RFMO map
-rfmo_map <- my_sf("RFMO") %>% 
+rfmo_map <- my_sf("RFMO", system = "juliano") %>% 
   filter(RFMO_nm_s %in% c("IATTC","WCPFC")) %>% #44 and
   st_simplify(preserveTopology = TRUE, dTolerance = 0.1) %>% 
   st_shift_longitude() #Shitfs longitudes ti center the pacific
 
-world_eez <- my_sf("SAU",simple = 1000,system = "Valentina")
+world_eez <- my_sf("SAU",simple = 1000,system = "juliano")
 
 world_land <- world_land <- ne_countries(scale = 'medium', returnclass = c("sp"))
 
@@ -336,7 +336,7 @@ aggregated_data <- proportion_data %>%
 ```{r}
 
 # Get RFMO map
-rfmo_map <- my_sf("RFMO", system = "Valentina") %>% 
+rfmo_map <- my_sf("RFMO", system = "juliano") %>% 
   filter(RFMO_nm_s %in% c("IATTC","WCPFC")) %>% #44 and
   st_simplify(preserveTopology = TRUE, dTolerance = 0.1)
 
@@ -373,16 +373,16 @@ world_land <- ne_countries(scale = 'large', returnclass = c("sf")) %>%
 ```{r grid_map, eval = T, echo = F}
 
 # Estimate overall aggregation
-aggregated_data <- read_csv("../results/tbl/proportion_change.csv") %>% 
+aggregated_data <- read_csv("../results/tbl/proportion_change.csv") %>%
   # Add all biomass within the CCZ
-  group_by(year,time_step,rcp,spp) %>% 
-  summarise(total_biomass = sum(total_value)) %>% 
+  group_by(year,time_step,rcp,spp) %>%
+  summarise(total_biomass = sum(total_value)) %>%
   # Average biomass within the CCZ at time period
-  group_by(time_step,rcp,spp) %>% 
-  summarise(mean_time = mean(total_biomass)) %>% 
+  group_by(time_step,rcp,spp) %>%
+  summarise(mean_time = mean(total_biomass)) %>%
   # Estimate per_change
-  spread(time_step,mean_time) %>% 
-  mutate(per_change = round((future-present)/present*100)) %>% 
+  spread(time_step,mean_time) %>%
+  mutate(per_change = round((future-present)/present*100)) %>%
   mutate(
     lat = 30,
     lon = -160
@@ -399,8 +399,8 @@ proportion_data %>%
   # View()
   ggplot() +
   # Include RFMOs
-  geom_sf(data = rfmo_map %>% filter(OBJECTID != 44), aes(), fill = "skyblue", color = "lightblue3") +
-  geom_sf(data = rfmo_map %>% filter(OBJECTID == 44), aes(), fill = "lightblue1", color = NA) +
+  geom_sf(data = rfmo_map %>% filter(OBJECTID != 44), aes(), fill = "skyblue", color = "skyblue") +
+  geom_sf(data = rfmo_map %>% filter(OBJECTID == 44), aes(), fill = "lightblue1", color = "lightblue1") +
   # Include percentage change
   geom_tile(
     aes(
@@ -452,7 +452,7 @@ proportion_data %>%
   
   
 # Save plot
-ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_rfmo.png",
+ggsave("../results/figs/allgrids_spp_rfmo.png",
        last_plot(),
        height = 5,
        width = 10
@@ -460,6 +460,7 @@ ggsave("~/Data/ccz_tuna/results/figs/relative_change_all_esm/allgrids_spp_rfmo.p
     )
 
 ```
+
 # Overall tuna numbers
 
 These numbers are from the Sea Around Us website for tuna catches in the high seas by Mexico, Venezuela, Nicaragua, Panama, and Colombia available from www.seaaroundus.com and Erauskin-Extramiana et al., 2019.
@@ -503,6 +504,3 @@ round((wcpfc + iattc)/(sum(3015.0, 720.0, 1126.0, 14.0, 587.0)*1000)*100)
 
 
 
-
-
-```

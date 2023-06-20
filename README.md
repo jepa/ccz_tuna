@@ -13,7 +13,7 @@ This repository is intended to support the project *Climate change to drive incr
 
 # Files and folders organization:
 
-In this repository you will find all of the code related to the data analysis. note that all data is available from Bell 
+In this repository you will find all of the code related to the data analysis. Note that all data is available from Bell 
 *et al* (2020), see *Data* section below.
 
 ## Folders
@@ -21,13 +21,13 @@ In this repository you will find all of the code related to the data analysis. n
 - `results`: folder containing the results of the manuscript. It is sub-devided in `tbl` containing tables and `fig` containing the figures 
 
 - `scripts`: this folder has the scripts used to do the analysis
-  - `functions.R`: script that contains all of the functions needed for the analysis. note that mos functions are adopted from Bell *et al* (2020) 
+  - `functions.R`: script that contains all of the functions needed for the analysis. Note that most functions are adopted from Bell *et al* (2020) 
   - `main_script.R`: this script contains the step-by-step analysis of the data
 
 
 # Data
 
-The raw data used in this analysis comes from the manuscript lead by J.D. Bell published in the journal *nature sustainability* in 2021 with the title "Pathways to sustaining tuna-dependent Pacific Island economies during climate change". The data is publically available and can be found [here](https://osf.io/qa8w4/). For access to the shapefiles used please contact [The Sea Around Us](http://www.seaaroundus.org/) for the RFMO shapefile and [Jesse van der Grient](https://www.south-atlantic-research.org/2022/07/06/dr-jesse-van-der-grient-joins-the-saeri-team/) for the CCZ shapefiles.
+The raw data used in this analysis comes from the manuscript lead by J.D. Bell published in the journal *nature sustainability* in 2021 with the title "Pathways to sustaining tuna-dependent Pacific Island economies during climate change". The data is publicly available and can be found [here](https://osf.io/qa8w4/). For access to the shapefiles used please contact [The Sea Around Us](http://www.seaaroundus.org/) for the RFMO shapefile and [Jesse van der Grient](https://www.south-atlantic-research.org/2022/07/06/dr-jesse-van-der-grient-joins-the-saeri-team/) for the CCZ shapefiles.
 
 
 # Relevant References
